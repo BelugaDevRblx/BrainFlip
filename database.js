@@ -44,7 +44,21 @@ const DB = {
         return {
             users: {},
             items: {
-                Dragon_canneloni: { id: "Dragon canneloni", name: "Dragon canneloni", value: 5000, icon: "Item_Assets/Dragoncanneloni.png" }
+                skibidi_toilet: { id: "skibidi_toilet", name: "Skibidi Toilet", value: 100, icon: "Item_Assets/skibidi_toilet.png" },
+                cameraman: { id: "cameraman", name: "Cameraman", value: 250, icon: "Item_Assets/cameraman.png" },
+                tv_man: { id: "tv_man", name: "TV Man", value: 500, icon: "Item_Assets/tv_man.png" },
+                speakerman: { id: "speakerman", name: "Speakerman", value: 750, icon: "Item_Assets/speakerman.png" },
+                gman: { id: "gman", name: "G-Man", value: 1000, icon: "Item_Assets/gman.png" },
+                titan_cameraman: { id: "titan_cameraman", name: "Titan Cameraman", value: 2500, icon: "Item_Assets/titan_cameraman.png" },
+                titan_speakerman: { id: "titan_speakerman", name: "Titan Speakerman", value: 2500, icon: "Item_Assets/titan_speakerman.png" },
+                titan_tvman: { id: "titan_tvman", name: "Titan TV Man", value: 3000, icon: "Item_Assets/titan_tvman.png" },
+                chill_guy: { id: "chill_guy", name: "Chill Guy", value: 150, icon: "Item_Assets/chill_guy.png" },
+                sigma: { id: "sigma", name: "Sigma", value: 300, icon: "Item_Assets/sigma.png" },
+                ohio_boss: { id: "ohio_boss", name: "Ohio Boss", value: 10000, icon: "Item_Assets/ohio_boss.png" },
+                rizz_god: { id: "rizz_god", name: "Rizz God", value: 7500, icon: "Item_Assets/rizz_god.png" },
+                gyatt: { id: "gyatt", name: "Gyatt", value: 200, icon: "Item_Assets/gyatt.png" },
+                kai_cenat: { id: "kai_cenat", name: "Kai Cenat", value: 5000, icon: "Item_Assets/kai_cenat.png" },
+                ishowspeed: { id: "ishowspeed", name: "IShowSpeed", value: 6000, icon: "Item_Assets/ishowspeed.png" }
             }
         };
     },
