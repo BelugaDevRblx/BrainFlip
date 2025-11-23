@@ -65,7 +65,7 @@ const DB = {
         return {
             users: {},
             items: {
-                Dragon_canneloni: { id: "Dragon_canneloni", name: "Dragon canneloni", value: 100, icon: "Item_Assets/Dragoncanneloni.png" }
+                dragon_canneloni: { id: "dragon_canneloni", name: "Dragon canneloni", value: 5000, icon: "item_assets/Dragoncanneloni.png" }
             }
         };
     },
@@ -192,6 +192,11 @@ const DB = {
     finishCoinflip(coinflipId, winnerSide) {
         const cf = this.getCoinflip(coinflipId);
         if (!cf || cf.status !== 'playing') return null;
+
+        // DÉTERMINER LE GAGNANT ICI (une seule fois)
+        if (!winnerSide) {
+            winnerSide = Math.random() < 0.5 ? cf.creatorSide : (cf.creatorSide === 'H' ? 'T' : 'H');
+        }
 
         const winner = winnerSide === cf.creatorSide ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;

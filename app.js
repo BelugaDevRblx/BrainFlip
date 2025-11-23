@@ -1130,8 +1130,7 @@ const App = {
     },
 
     async startCoinflipAnimation(cf) {
-        const winnerSide = Math.random() < 0.5 ? 'H' : 'T';
-        const videoSrc = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
+        const cfId = this.isOnline ? cf.id : cf.id;
 
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
@@ -1145,6 +1144,9 @@ const App = {
         const creatorSideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
         const opponentSide = creatorSide === 'H' ? 'T' : 'H';
         const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+
+        // Vidéo aléatoire pour le suspense (sera ignorée, on attend le vrai résultat)
+        const randomVideo = Math.random() < 0.5 ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
 
         let creatorTotal = 0;
         for (let i = 0; i < creatorItems.length; i++) {
@@ -1191,7 +1193,7 @@ const App = {
             '</div>' +
             '<div class="bloxyx-vs-coin">' +
             '<video id="coinVideo" class="bloxyx-coin-video" muted autoplay>' +
-            '<source src="' + videoSrc + '" type="video/mp4">' +
+            '<source src="' + randomVideo + '" type="video/mp4">' +
             '</video>' +
             '</div>' +
             '<div class="bloxyx-player-card">' +
@@ -1221,9 +1223,10 @@ const App = {
         const self = this;
         
         video.onended = async function() {
+            // NE PAS passer winnerSide - il sera calculé par finishCoinflip
             const result = self.isOnline
-                ? await SupaDB.finishCoinflip(cfId, winnerSide)
-                : DB.finishCoinflip(cfId, winnerSide);
+                ? await SupaDB.finishCoinflip(cfId, null)
+                : DB.finishCoinflip(cfId, null);
 
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);

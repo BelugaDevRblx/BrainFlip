@@ -1,6 +1,6 @@
 // SUPABASE CONFIG
 const SUPABASE_URL = 'https://woudapshwmdrogvbxviw.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_cBiEzbOnw-oMNxQkqFgJXA_-jgAR3Y8';
+const SUPABASE_KEY = 'sb_publishable_cBIEzbOnw-oMNxQkqFgJXA_-jgAR3Y8';
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
@@ -344,6 +344,11 @@ const SupaDB = {
         const cf = await this.getCoinflip(coinflipId);
         if (!cf || cf.status !== 'playing') return null;
 
+        // DÉTERMINER LE GAGNANT ICI (une seule fois)
+        if (!winnerSide) {
+            winnerSide = Math.random() < 0.5 ? cf.creator_side : (cf.creator_side === 'H' ? 'T' : 'H');
+        }
+
         const winner = winnerSide === cf.creator_side ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
 
@@ -477,7 +482,8 @@ const SupaDB = {
     // ITEMS
     async getAllItems() {
         return [
-            { id: "Dragon_canneloni", name: "Dragon canneloni", value: 5000, icon: "Item_Assets/Dragoncanneloni.png" }
+            { id: "dragon_canneloni", name: "Dragon canneloni", value: 5000, icon: "item_assets/Dragoncanneloni.png" }
+    
         ];
     },
 
