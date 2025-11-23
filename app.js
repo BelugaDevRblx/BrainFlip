@@ -403,8 +403,8 @@ const App = {
             '<button class="action-btn create" onclick="App.openCreateModal()">Create Coinflip</button>' +
             '</div>' +
             '<div class="filters-row">' +
-            '<div class="filter-group"><img src="Head.Tile.png" style="width:24px;height:24px;"><span id="filterHeadsCount">0</span> Heads</div>' +
-            '<div class="filter-group"><img src="Tails.Tile.png" style="width:24px;height:24px;"><span id="filterTailsCount">0</span> Tails</div>' +
+            '<div class="filter-group"><img src="Head_Tile.png" style="width:24px;height:24px;"><span id="filterHeadsCount">0</span> Heads</div>' +
+            '<div class="filter-group"><img src="Tails_Tile.png" style="width:24px;height:24px;"><span id="filterTailsCount">0</span> Tails</div>' +
             '</div>' +
             '<div class="coinflip-list" id="coinflipList"></div>' +
             '</div>';
@@ -593,7 +593,7 @@ const App = {
             const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
             const cfId = this.isOnline ? cf.id : cf.id;
             
-            const sideImg = creatorSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+            const sideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
             
             let itemsPreview = '';
             for (let j = 0; j < Math.min(4, creatorItems.length); j++) {
@@ -802,10 +802,10 @@ const App = {
             '<p style="color:var(--text-secondary);margin-bottom:0.75rem;">Choose your side:</p>' +
             '<div class="side-selector">' +
             '<div class="side-option purple selected" data-side="H" onclick="App.selectSide(\'H\',this)">' +
-            '<img src="Head.Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Heads</div>' +
+            '<img src="Head_Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Heads</div>' +
             '</div>' +
             '<div class="side-option" data-side="T" onclick="App.selectSide(\'T\',this)">' +
-            '<img src="Tails.Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Tails</div>' +
+            '<img src="Tails_Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Tails</div>' +
             '</div>' +
             '</div>' +
             '<button class="modal-btn success" onclick="App.createCoinflip()">Create Coinflip</button>' +
@@ -963,7 +963,10 @@ const App = {
 
     async startCoinflipAnimation(cf) {
         const winnerSide = Math.random() < 0.5 ? 'H' : 'T';
+        // IMPORTANT: Si H_Tiles.mp4 montre TAILS qui gagne, inverser ici
         const videoSrc = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
+        // Si les vidéos sont inversées, décommenter cette ligne:
+        // const videoSrc = winnerSide === 'H' ? 'assets/T_Tails.mp4' : 'assets/H_Tiles.mp4';
 
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
@@ -979,8 +982,8 @@ const App = {
         }
 
         const opponentSide = creatorSide === 'H' ? 'T' : 'H';
-        const creatorSideImg = creatorSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
-        const opponentSideImg = opponentSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+        const creatorSideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+        const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
 
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
@@ -1274,9 +1277,9 @@ const App = {
         const creatorItems = this.isOnline ? cf.creator_items : cf.creatorItems;
         const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
 
-        const creatorSideImg = creatorSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+        const creatorSideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
         const opponentSide = creatorSide === 'H' ? 'T' : 'H';
-        const opponentSideImg = opponentSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+        const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
 
         let creatorItemsHtml = '';
         for (let i = 0; i < creatorItems.length; i++) {
