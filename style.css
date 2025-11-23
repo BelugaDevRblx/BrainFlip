@@ -741,6 +741,21 @@ body {
     transition: all 0.2s;
 }
 
+.coinflip-card.finished {
+    border-color: var(--accent-green);
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), transparent);
+    animation: finishedPulse 2s infinite;
+}
+
+@keyframes finishedPulse {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(34, 197, 94, 0.5);
+    }
+}
+
 .coinflip-card:hover {
     border-color: var(--accent-purple);
     transform: translateY(-2px);

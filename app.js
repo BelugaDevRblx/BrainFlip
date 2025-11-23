@@ -676,7 +676,7 @@ const App = {
                 const winnerSide = this.isOnline ? cf.winner_side : cf.winnerSide;
                 const winnerSideImg = winnerSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
                 
-                html += '<div class="coinflip-card" style="border-color:var(--accent-green);opacity:0.9;">' +
+                html += '<div class="coinflip-card finished">' +
                     '<div class="cf-players">' +
                     '<div class="cf-player' + (winner === creator ? '' : ' waiting') + '">' +
                     '<img class="cf-player-avatar" src="' + creatorAvatar + '">' +
@@ -1072,6 +1072,31 @@ const App = {
             
         if (joined) {
             this.closeModal('joinCfModal');
+            
+            // Envoyer notification système dans le chat
+            const creator = this.isOnline ? joined.creator : joined.creator;
+            const opponent = this.isOnline ? joined.opponent : joined.opponent;
+            const systemMsg = '🎮 ' + opponent + ' joined ' + creator + '\'s coinflip! Battle starting...';
+            
+            if (this.isOnline) {
+                await SupaDB.sendChatMessage('System', systemMsg);
+            } else {
+                // Ajouter message système temporaire
+                const msg = {
+                    id: 'msg_' + Date.now(),
+                    username: 'System',
+                    avatar: 'https://ui-avatars.com/api/?name=System&background=7c3aed&color=fff',
+                    isAdmin: true,
+                    message: systemMsg,
+                    timestamp: new Date().toISOString()
+                };
+                DB.shared.chat.push(msg);
+                DB.saveShared();
+            }
+            
+            this.loadChat();
+            
+            // Démarrer l'animation pour tous les joueurs
             this.startCoinflipAnimation(joined);
         }
     },
