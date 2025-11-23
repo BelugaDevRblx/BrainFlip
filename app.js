@@ -352,7 +352,13 @@ const App = {
     },
 
     startIntervals() {
-        if (!this.isOnline) {
+        if (this.isOnline) {
+            setInterval(() => {
+                this.loadCoinflips();
+                this.checkForActiveCoinflip();
+            }, 3000);
+            setInterval(() => this.loadChat(), 2000);
+        } else {
             setInterval(() => {
                 this.loadCoinflips();
                 this.checkForActiveCoinflip();
@@ -1111,94 +1117,104 @@ const App = {
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
         const creatorSide = this.isOnline ? cf.creator_side : cf.creatorSide;
+        const creatorItems = this.isOnline ? cf.creator_items : cf.creatorItems;
         const opponent = this.isOnline ? cf.opponent : cf.opponent;
         const opponentAvatar = this.isOnline ? cf.opponent_avatar : cf.opponentAvatar;
-        const creatorValue = this.isOnline ? cf.total_value : cf.totalValue;
-        
-        let opponentValue = 0;
         const opponentItems = this.isOnline ? cf.opponent_items : cf.opponentItems;
+        const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
+
+        const creatorSideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+        const opponentSide = creatorSide === 'H' ? 'T' : 'H';
+        const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+
+        let creatorTotal = 0;
+        for (let i = 0; i < creatorItems.length; i++) {
+            creatorTotal += creatorItems[i].value;
+        }
+        let opponentTotal = 0;
         for (let i = 0; i < opponentItems.length; i++) {
-            opponentValue += opponentItems[i].value;
+            opponentTotal += opponentItems[i].value;
         }
 
-        const opponentSide = creatorSide === 'H' ? 'T' : 'H';
-        const creatorSideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
-        const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+        const cfId = this.isOnline ? cf.id : cf.id;
 
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.id = 'cfAnimationModal';
-        modal.innerHTML = '<div class="modal coinflip-animation-modal">' +
-            '<div class="cf-anim-header">' +
-            '<h2>COINFLIP BATTLE</h2>' +
+        modal.style.zIndex = '99999';
+        
+        let creatorItemsHtml = '';
+        for (let i = 0; i < creatorItems.length; i++) {
+            creatorItemsHtml += '<div class="bloxyx-item">' +
+                '<img src="' + creatorItems[i].icon + '">' +
+                '<div class="item-name">' + creatorItems[i].name + '</div>' +
+                '<div class="item-value">B$' + this.formatNumber(creatorItems[i].value / 1000) + '</div>' +
+                '</div>';
+        }
+
+        let opponentItemsHtml = '';
+        for (let i = 0; i < opponentItems.length; i++) {
+            opponentItemsHtml += '<div class="bloxyx-item">' +
+                '<img src="' + opponentItems[i].icon + '">' +
+                '<div class="item-name">' + opponentItems[i].name + '</div>' +
+                '<div class="item-value">B$' + this.formatNumber(opponentItems[i].value / 1000) + '</div>' +
+                '</div>';
+        }
+
+        modal.innerHTML = '<div class="bloxyx-modal">' +
+            '<button class="bloxyx-close" onclick="App.closeModal(\'cfAnimationModal\')">×</button>' +
+            '<div class="bloxyx-header">Bx | Bloxyx</div>' +
+            '<div class="bloxyx-players-section">' +
+            '<div class="bloxyx-player-card">' +
+            '<img src="' + creatorAvatar + '" class="bloxyx-avatar">' +
+            '<img src="' + creatorSideImg + '" class="bloxyx-side-badge-creator">' +
+            '<div class="bloxyx-username">' + creator + '</div>' +
             '</div>' +
-            '<div class="cf-anim-players">' +
-            '<div class="cf-anim-player">' +
-            '<img src="' + creatorAvatar + '" class="cf-anim-avatar">' +
-            '<div class="cf-anim-username">' + creator + '</div>' +
-            '<div class="cf-anim-value">' + this.formatNumber(creatorValue) + ' 💎</div>' +
-            '<img src="' + creatorSideImg + '" class="cf-anim-side">' +
+            '<div class="bloxyx-vs-coin">' +
+            '<img src="' + creatorSideImg + '" class="bloxyx-coin-big" id="bxCoinImg">' +
             '</div>' +
-            '<div class="cf-anim-vs">VS</div>' +
-            '<div class="cf-anim-player">' +
-            '<img src="' + opponentAvatar + '" class="cf-anim-avatar">' +
-            '<div class="cf-anim-username">' + opponent + '</div>' +
-            '<div class="cf-anim-value">' + this.formatNumber(opponentValue) + ' 💎</div>' +
-            '<img src="' + opponentSideImg + '" class="cf-anim-side">' +
+            '<div class="bloxyx-player-card">' +
+            '<img src="' + opponentAvatar + '" class="bloxyx-avatar">' +
+            '<img src="' + opponentSideImg + '" class="bloxyx-side-badge-opponent">' +
+            '<div class="bloxyx-username">' + opponent + '</div>' +
             '</div>' +
             '</div>' +
-            '<div id="countdownContainer" class="cf-countdown">3</div>' +
-            '<div class="cf-video-container" style="display:none;">' +
-            '<video id="coinVideo" class="cf-video" muted>' +
-            '<source src="' + videoSrc + '" type="video/mp4">' +
-            '</video>' +
+            '<div class="bloxyx-game-id"># ' + cfId.substring(3, 20) + '</div>' +
+            '<div class="bloxyx-items-section">' +
+            '<div class="bloxyx-items-column">' +
+            '<div class="bloxyx-total"><span class="coin-icon">💎</span> B$' + this.formatNumber(creatorTotal / 1000) + '</div>' +
+            '<div class="bloxyx-percentage">' + ((creatorTotal / (creatorTotal + opponentTotal)) * 100).toFixed(2) + '%</div>' +
+            '<div class="bloxyx-items-list">' + creatorItemsHtml + '</div>' +
             '</div>' +
-            '<div class="cf-winner-banner" id="winnerBanner">' +
-            '<span id="winnerName"></span> WINS!' +
+            '<div class="bloxyx-items-column">' +
+            '<div class="bloxyx-total"><span class="coin-icon">💎</span> B$' + this.formatNumber(opponentTotal / 1000) + '</div>' +
+            '<div class="bloxyx-percentage">' + ((opponentTotal / (creatorTotal + opponentTotal)) * 100).toFixed(2) + '%</div>' +
+            '<div class="bloxyx-items-list">' + opponentItemsHtml + '</div>' +
             '</div>' +
+            '</div>' +
+            '<video id="coinVideo" style="display:none;" muted><source src="' + videoSrc + '" type="video/mp4"></video>' +
             '</div>';
             
         document.body.appendChild(modal);
 
-        // Countdown 3, 2, 1
-        const countdown = document.getElementById('countdownContainer');
-        let count = 3;
-        const countInterval = setInterval(function() {
-            count--;
-            if (count > 0) {
-                countdown.textContent = count;
-            } else {
-                clearInterval(countInterval);
-                countdown.style.display = 'none';
-                document.querySelector('.cf-video-container').style.display = 'block';
-                
-                const video = document.getElementById('coinVideo');
-                video.play();
-            }
-        }, 1000);
-
+        const coinImg = document.getElementById('bxCoinImg');
         const video = document.getElementById('coinVideo');
+        
+        setTimeout(function() {
+            coinImg.classList.add('spinning');
+            video.play();
+        }, 500);
+
         const self = this;
         video.onended = async function() {
-            const cfId = self.isOnline ? cf.id : cf.id;
+            const winnerSideImg = winnerSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+            coinImg.src = winnerSideImg;
+            coinImg.classList.remove('spinning');
+            coinImg.classList.add('winner-reveal');
+
             const result = self.isOnline
                 ? await SupaDB.finishCoinflip(cfId, winnerSide)
                 : DB.finishCoinflip(cfId, winnerSide);
-                
-            const banner = document.getElementById('winnerBanner');
-            const winnerName = document.getElementById('winnerName');
-            
-            if (winnerName) winnerName.textContent = result.winner;
-            
-            const isWinner = result.winner === self.currentUser.username;
-            if (banner) {
-                banner.classList.add('show');
-                if (isWinner) {
-                    banner.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
-                } else {
-                    banner.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
-                }
-            }
 
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);

@@ -1613,3 +1613,206 @@ body {
     color: #fff;
     text-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
+/* Bloxyx Animation Style */
+.bloxyx-modal {
+    background: #1a1d2e;
+    border-radius: 16px;
+    padding: 0;
+    max-width: 900px;
+    position: relative;
+    overflow: hidden;
+}
+
+.bloxyx-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 10;
+}
+
+.bloxyx-header {
+    text-align: center;
+    padding: 1.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.bloxyx-players-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2rem;
+    gap: 2rem;
+}
+
+.bloxyx-player-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.bloxyx-avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 4px solid #7c3aed;
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.5);
+}
+
+.bloxyx-side-badge-creator {
+    position: absolute;
+    bottom: 30px;
+    right: -10px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid #f97316;
+    background: #1a1d2e;
+}
+
+.bloxyx-side-badge-opponent {
+    position: absolute;
+    bottom: 30px;
+    left: -10px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid #7c3aed;
+    background: #1a1d2e;
+}
+
+.bloxyx-username {
+    margin-top: 1rem;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+}
+
+.bloxyx-vs-coin {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bloxyx-coin-big {
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: 4px solid rgba(124, 58, 237, 0.5);
+    background: linear-gradient(135deg, #2d3148, #1a1d2e);
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+}
+
+.bloxyx-coin-big.spinning {
+    animation: spin 2s linear infinite;
+}
+
+.bloxyx-coin-big.winner-reveal {
+    animation: revealWinner 0.5s ease-out;
+    border-color: #22c55e;
+    box-shadow: 0 0 50px rgba(34, 197, 94, 0.8);
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes revealWinner {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+}
+
+.bloxyx-game-id {
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.9rem;
+    padding: 0.5rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.bloxyx-items-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    background: #13151f;
+}
+
+.bloxyx-items-column {
+    padding: 1.5rem;
+    border-right: 1px solid rgba(255,255,255,0.05);
+}
+
+.bloxyx-items-column:last-child {
+    border-right: none;
+}
+
+.bloxyx-total {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #7c3aed;
+    margin-bottom: 0.5rem;
+}
+
+.coin-icon {
+    font-size: 1.1rem;
+}
+
+.bloxyx-percentage {
+    color: #9ca3af;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.bloxyx-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.bloxyx-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: rgba(255,255,255,0.03);
+    padding: 0.75rem;
+    border-radius: 8px;
+}
+
+.bloxyx-item img {
+    width: 48px;
+    height: 48px;
+    border-radius: 6px;
+    border: 1px solid rgba(124, 58, 237, 0.3);
+}
+
+.item-name {
+    flex: 1;
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.item-value {
+    color: #7c3aed;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
