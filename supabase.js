@@ -477,21 +477,7 @@ const SupaDB = {
     // ITEMS
     async getAllItems() {
         return [
-            { id: "skibidi_toilet", name: "Skibidi Toilet", value: 100, icon: "Item_Assets/skibidi_toilet.png" },
-            { id: "cameraman", name: "Cameraman", value: 250, icon: "Item_Assets/cameraman.png" },
-            { id: "tv_man", name: "TV Man", value: 500, icon: "Item_Assets/tv_man.png" },
-            { id: "speakerman", name: "Speakerman", value: 750, icon: "Item_Assets/speakerman.png" },
-            { id: "gman", name: "G-Man", value: 1000, icon: "Item_Assets/gman.png" },
-            { id: "titan_cameraman", name: "Titan Cameraman", value: 2500, icon: "Item_Assets/titan_cameraman.png" },
-            { id: "titan_speakerman", name: "Titan Speakerman", value: 2500, icon: "Item_Assets/titan_speakerman.png" },
-            { id: "titan_tvman", name: "Titan TV Man", value: 3000, icon: "Item_Assets/titan_tvman.png" },
-            { id: "chill_guy", name: "Chill Guy", value: 150, icon: "Item_Assets/chill_guy.png" },
-            { id: "sigma", name: "Sigma", value: 300, icon: "Item_Assets/sigma.png" },
-            { id: "ohio_boss", name: "Ohio Boss", value: 10000, icon: "Item_Assets/ohio_boss.png" },
-            { id: "rizz_god", name: "Rizz God", value: 7500, icon: "Item_Assets/rizz_god.png" },
-            { id: "gyatt", name: "Gyatt", value: 200, icon: "Item_Assets/gyatt.png" },
-            { id: "kai_cenat", name: "Kai Cenat", value: 5000, icon: "Item_Assets/kai_cenat.png" },
-            { id: "ishowspeed", name: "IShowSpeed", value: 6000, icon: "Item_Assets/ishowspeed.png" }
+            { id: "Dragon_canneloni", name: "Dragon canneloni", value: 5000, icon: "Item_Assets/Dragoncanneloni.png" }
         ];
     },
 
