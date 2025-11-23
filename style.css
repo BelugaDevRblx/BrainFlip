@@ -1482,3 +1482,134 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-purple);
 }
+
+/* Coinflip Animation Modal - Design Compact */
+.coinflip-animation-modal {
+    max-width: 480px !important;
+    padding: 1.5rem !important;
+    background: linear-gradient(135deg, #1a1d29 0%, #0f111a 100%);
+    border: 2px solid rgba(124, 58, 237, 0.3);
+}
+
+.cf-anim-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.cf-anim-header h2 {
+    font-size: 1.8rem;
+    margin: 0;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-orange));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+}
+
+.cf-anim-players {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    gap: 1rem;
+}
+
+.cf-anim-player {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+}
+
+.cf-anim-avatar {
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    border: 3px solid var(--accent-purple);
+    box-shadow: 0 4px 16px rgba(124, 58, 237, 0.4);
+}
+
+.cf-anim-username {
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.cf-anim-value {
+    font-size: 0.9rem;
+    color: var(--accent-purple);
+    font-weight: 600;
+}
+
+.cf-anim-side {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    margin-top: 0.25rem;
+}
+
+.cf-anim-vs {
+    font-size: 1.8rem;
+    font-weight: 900;
+    color: var(--text-secondary);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.cf-countdown {
+    font-size: 4rem;
+    font-weight: 900;
+    text-align: center;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-orange));
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    margin: 1.5rem 0;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.cf-video-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5rem 0;
+}
+
+.cf-video {
+    width: 280px;
+    height: 280px;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    border: 2px solid rgba(124, 58, 237, 0.3);
+}
+
+.cf-winner-banner {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    font-weight: 900;
+    text-align: center;
+    margin-top: 1.5rem;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.5s;
+}
+
+.cf-winner-banner.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.cf-winner-banner #winnerName {
+    color: #fff;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}

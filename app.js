@@ -353,8 +353,33 @@ const App = {
 
     startIntervals() {
         if (!this.isOnline) {
-            setInterval(() => this.loadCoinflips(), 3000);
+            setInterval(() => {
+                this.loadCoinflips();
+                this.checkForActiveCoinflip();
+            }, 3000);
             setInterval(() => this.loadChat(), 2000);
+        }
+    },
+
+    async checkForActiveCoinflip() {
+        const coinflips = this.isOnline 
+            ? await SupaDB.getAllActiveCoinflips()
+            : DB.getAllActiveCoinflips();
+
+        for (let i = 0; i < coinflips.length; i++) {
+            const cf = coinflips[i];
+            const status = this.isOnline ? cf.status : cf.status;
+            const creator = this.isOnline ? cf.creator : cf.creator;
+            const cfId = this.isOnline ? cf.id : cf.id;
+
+            if (creator === this.currentUser.username && status === 'playing') {
+                const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
+                if (!activeCfId || activeCfId !== cfId) {
+                    localStorage.setItem('brainrotflip_active_coinflip', cfId);
+                    this.startCoinflipAnimation(cf);
+                    break;
+                }
+            }
         }
     },
 
@@ -1081,10 +1106,7 @@ const App = {
 
     async startCoinflipAnimation(cf) {
         const winnerSide = Math.random() < 0.5 ? 'H' : 'T';
-        // IMPORTANT: Si H_Tiles.mp4 montre TAILS qui gagne, inverser ici
         const videoSrc = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
-        // Si les vidéos sont inversées, décommenter cette ligne:
-        // const videoSrc = winnerSide === 'H' ? 'assets/T_Tails.mp4' : 'assets/H_Tiles.mp4';
 
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
@@ -1106,32 +1128,34 @@ const App = {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.id = 'cfAnimationModal';
-        modal.innerHTML = '<div class="modal" style="max-width:620px;text-align:center;">' +
-            '<h2 style="margin-bottom:2rem;font-size:2rem;">⚡ COINFLIP BATTLE ⚡</h2>' +
-            '<div class="cf-arena">' +
-            '<div class="arena-players">' +
-            '<div class="arena-player">' +
-            '<img src="' + creatorAvatar + '">' +
-            '<div class="name">' + creator + '</div>' +
-            '<div class="value">' + this.formatNumber(creatorValue) + ' 💎</div>' +
-            '<img src="' + creatorSideImg + '" style="width:42px;height:42px;margin-top:0.5rem;border-radius:50%;border:2px solid var(--accent-purple);">' +
+        modal.innerHTML = '<div class="modal coinflip-animation-modal">' +
+            '<div class="cf-anim-header">' +
+            '<h2>COINFLIP BATTLE</h2>' +
             '</div>' +
-            '<div class="vs-badge" style="font-size:2rem;">VS</div>' +
-            '<div class="arena-player orange">' +
-            '<img src="' + opponentAvatar + '">' +
-            '<div class="name">' + opponent + '</div>' +
-            '<div class="value">' + this.formatNumber(opponentValue) + ' 💎</div>' +
-            '<img src="' + opponentSideImg + '" style="width:42px;height:42px;margin-top:0.5rem;border-radius:50%;border:2px solid var(--accent-orange);">' +
+            '<div class="cf-anim-players">' +
+            '<div class="cf-anim-player">' +
+            '<img src="' + creatorAvatar + '" class="cf-anim-avatar">' +
+            '<div class="cf-anim-username">' + creator + '</div>' +
+            '<div class="cf-anim-value">' + this.formatNumber(creatorValue) + ' 💎</div>' +
+            '<img src="' + creatorSideImg + '" class="cf-anim-side">' +
+            '</div>' +
+            '<div class="cf-anim-vs">VS</div>' +
+            '<div class="cf-anim-player">' +
+            '<img src="' + opponentAvatar + '" class="cf-anim-avatar">' +
+            '<div class="cf-anim-username">' + opponent + '</div>' +
+            '<div class="cf-anim-value">' + this.formatNumber(opponentValue) + ' 💎</div>' +
+            '<img src="' + opponentSideImg + '" class="cf-anim-side">' +
             '</div>' +
             '</div>' +
-            '<div id="countdownContainer" style="font-size:5rem;font-weight:900;color:var(--accent-purple);margin:2rem 0;">3</div>' +
-            '<div class="coin-container" style="display:none;">' +
-            '<video id="coinVideo" style="width:350px;height:350px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);" muted>' +
+            '<div id="countdownContainer" class="cf-countdown">3</div>' +
+            '<div class="cf-video-container" style="display:none;">' +
+            '<video id="coinVideo" class="cf-video" muted>' +
             '<source src="' + videoSrc + '" type="video/mp4">' +
             '</video>' +
             '</div>' +
+            '<div class="cf-winner-banner" id="winnerBanner">' +
+            '<span id="winnerName"></span> WINS!' +
             '</div>' +
-            '<div class="winner-banner" id="winnerBanner">🏆 <span id="winnerName"></span> WINS!</div>' +
             '</div>';
             
         document.body.appendChild(modal);
@@ -1146,7 +1170,7 @@ const App = {
             } else {
                 clearInterval(countInterval);
                 countdown.style.display = 'none';
-                document.querySelector('.coin-container').style.display = 'flex';
+                document.querySelector('.cf-video-container').style.display = 'block';
                 
                 const video = document.getElementById('coinVideo');
                 video.play();
@@ -1167,7 +1191,14 @@ const App = {
             if (winnerName) winnerName.textContent = result.winner;
             
             const isWinner = result.winner === self.currentUser.username;
-            if (banner) banner.classList.add('show', isWinner ? 'win' : 'loss');
+            if (banner) {
+                banner.classList.add('show');
+                if (isWinner) {
+                    banner.style.background = 'linear-gradient(135deg, #22c55e, #16a34a)';
+                } else {
+                    banner.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                }
+            }
 
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);
@@ -1185,12 +1216,13 @@ const App = {
                 self.currentUser.stats = user.stats;
             }
             
+            localStorage.removeItem('brainrotflip_active_coinflip');
             self.updateUI();
             self.loadCoinflips();
 
             setTimeout(function() {
                 self.closeModal('cfAnimationModal');
-            }, 3500);
+            }, 3000);
         };
     },
 
