@@ -1,7 +1,7 @@
 const App = {
     currentUser: null,
     selectedItems: [],
-    selectedSide: 'H',
+    selectedSide: 'purple',
     joiningCoinflipId: null,
     chatSubscription: null,
     coinflipSubscription: null,
@@ -54,10 +54,13 @@ const App = {
                 if (user) {
                     this.currentUser = {
                         username: user.username,
-                        robloxId: user.roblox_id,
+                        email: user.email,
                         avatar: user.avatar,
                         level: user.level,
                         isAdmin: user.is_admin,
+                        discordLinked: user.discord_linked || false,
+                        discordUsername: user.discord_username || null,
+                        badges: user.badges || [],
                         stats: {
                             wagered: user.stats_wagered || 0,
                             won: user.stats_won || 0,
@@ -83,73 +86,72 @@ const App = {
     },
 
     showLogin() {
-        this.generateVerificationCode();
-        const code = localStorage.getItem('brainrotflip_verification_code') || 'BRF-XXXXXX';
-        
         const html = '<div class="modal-overlay">' +
             '<div class="modal">' +
-            '<div class="modal-header"><h2>🎮 Login with Roblox</h2></div>' +
-            '<input type="text" class="modal-input" id="loginUsername" placeholder="Your Roblox Username">' +
-            '<div class="verification-box">' +
-            '<label>Put this code in your Roblox profile description:</label>' +
-            '<div class="verification-code">' +
-            '<code>' + code + '</code>' +
-            '<button class="copy-btn" onclick="App.copyVerificationCode(\'' + code + '\')">Copy</button>' +
+            '<div class="modal-header"><h2>🎮 Welcome to BrainrotFlip</h2></div>' +
+            '<div class="modal-tabs">' +
+            '<div class="modal-tab active" onclick="App.switchLoginTab(\'login\', this)">Login</div>' +
+            '<div class="modal-tab" onclick="App.switchLoginTab(\'register\', this)">Register</div>' +
             '</div>' +
+            '<div id="loginForm">' +
+            '<input type="text" class="modal-input" id="loginUsername" placeholder="Username">' +
+            '<input type="password" class="modal-input" id="loginPassword" placeholder="Password">' +
+            '<button class="modal-btn" onclick="App.login()">Login</button>' +
             '</div>' +
-            '<button class="modal-btn" onclick="App.verifyAndLogin()">Verify & Login</button>' +
-            '<p class="modal-note">Add the code to your Roblox description, then click login</p>' +
+            '<div id="registerForm" style="display:none;">' +
+            '<input type="text" class="modal-input" id="regUsername" placeholder="Username">' +
+            '<input type="email" class="modal-input" id="regEmail" placeholder="Email">' +
+            '<input type="password" class="modal-input" id="regPassword" placeholder="Password">' +
+            '<input type="password" class="modal-input" id="regPasswordConfirm" placeholder="Confirm Password">' +
+            '<button class="modal-btn success" onclick="App.register()">Create Account</button>' +
+            '</div>' +
             '</div>' +
             '</div>';
         
         document.getElementById('root').innerHTML = html;
     },
 
-    generateVerificationCode() {
-        const code = 'BRF-' + Math.random().toString(36).substring(2, 8).toUpperCase();
-        localStorage.setItem('brainrotflip_verification_code', code);
-        return code;
+    switchLoginTab(tab, el) {
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        
+        if (tab === 'login') {
+            document.getElementById('loginForm').style.display = 'block';
+            document.getElementById('registerForm').style.display = 'none';
+        } else {
+            document.getElementById('loginForm').style.display = 'none';
+            document.getElementById('registerForm').style.display = 'block';
+        }
     },
 
-    copyVerificationCode(code) {
-        navigator.clipboard.writeText(code);
-        this.showToast('Code copied!', 'success');
-    },
-
-    async verifyAndLogin() {
+    async login() {
         const username = document.getElementById('loginUsername').value.trim();
-        if (!username) {
-            this.showToast('Enter username!', 'error');
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!username || !password) {
+            this.showToast('Fill all fields!', 'error');
             return;
         }
 
-        this.showToast('Verifying...', 'info');
+        this.showToast('Logging in...', 'info');
 
         if (this.isOnline) {
-            const verification = await SupaDB.verifyRobloxUser(username);
+            const result = await SupaDB.loginUser(username, password);
+            if (!result.success) {
+                this.showToast(result.error, 'error');
+                return;
+            }
             
-            if (!verification.success) {
-                this.showToast(verification.error, 'error');
-                return;
-            }
-
-            const user = await SupaDB.createOrGetUser(
-                verification.user.username,
-                verification.user.robloxId,
-                verification.user.avatar
-            );
-
-            if (!user) {
-                this.showToast('Failed to create user', 'error');
-                return;
-            }
-
+            const user = result.user;
             this.currentUser = {
                 username: user.username,
-                robloxId: user.roblox_id,
+                email: user.email,
                 avatar: user.avatar,
                 level: user.level,
                 isAdmin: user.is_admin,
+                discordLinked: user.discord_linked || false,
+                discordUsername: user.discord_username || null,
+                badges: user.badges || [],
                 stats: {
                     wagered: user.stats_wagered || 0,
                     won: user.stats_won || 0,
@@ -161,15 +163,81 @@ const App = {
             };
         } else {
             let user = DB.getUser(username);
-            if (!user) {
-                const robloxId = Math.floor(Math.random() * 9999999999);
-                user = DB.createUser(username, robloxId);
+            if (!user || user.password !== password) {
+                this.showToast('Invalid credentials!', 'error');
+                return;
             }
             this.currentUser = user;
         }
 
         localStorage.setItem('brainrotflip_current_user', username);
-        this.showToast('Welcome!', 'success');
+        this.showToast('Welcome back!', 'success');
+        this.showApp();
+    },
+
+    async register() {
+        const username = document.getElementById('regUsername').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPassword').value;
+        const passwordConfirm = document.getElementById('regPasswordConfirm').value;
+
+        if (!username || !email || !password || !passwordConfirm) {
+            this.showToast('Fill all fields!', 'error');
+            return;
+        }
+
+        if (password !== passwordConfirm) {
+            this.showToast('Passwords don\'t match!', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            this.showToast('Password must be 6+ characters!', 'error');
+            return;
+        }
+
+        this.showToast('Creating account...', 'info');
+
+        if (this.isOnline) {
+            const result = await SupaDB.registerUser(username, email, password);
+            if (!result.success) {
+                this.showToast(result.error, 'error');
+                return;
+            }
+
+            const user = result.user;
+            this.currentUser = {
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar,
+                level: user.level,
+                isAdmin: user.is_admin,
+                discordLinked: false,
+                discordUsername: null,
+                badges: [],
+                stats: {
+                    wagered: 0,
+                    won: 0,
+                    lost: 0,
+                    gamesPlayed: 0,
+                    gamesWon: 0
+                },
+                inventory: user.inventory || []
+            };
+        } else {
+            if (DB.getUser(username)) {
+                this.showToast('Username already exists!', 'error');
+                return;
+            }
+            const robloxId = Math.floor(Math.random() * 9999999999);
+            const user = DB.createUser(username, robloxId);
+            user.email = email;
+            user.password = password;
+            this.currentUser = user;
+        }
+
+        localStorage.setItem('brainrotflip_current_user', username);
+        this.showToast('Account created!', 'success');
         this.showApp();
     },
 
@@ -183,7 +251,7 @@ const App = {
             '</div>' +
             '<div class="sidebar-nav">' +
             '<div class="nav-section">' +
-            '<div class="nav-section-title">Games</div>' +
+            '<div class="nav-section-title">GAMES</div>' +
             '<div class="nav-item active" onclick="App.navigateTo(\'home\')">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>' +
             'Home</div>' +
@@ -192,13 +260,16 @@ const App = {
             'Coinflip</div>' +
             '</div>' +
             '<div class="nav-section">' +
-            '<div class="nav-section-title">More</div>' +
+            '<div class="nav-section-title">MORE</div>' +
             '<div class="nav-item" onclick="App.navigateTo(\'profile\')">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' +
-            'Profile</div>' +
+            'My Profile</div>' +
             '<div class="nav-item" onclick="App.navigateTo(\'leaderboard\')">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"/></svg>' +
             'Leaderboard</div>' +
+            '<div class="nav-item" onclick="App.navigateTo(\'settings\')">' +
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v6m0 6v6m5.196-13.196L13.393 9.607m-2.786 2.786L6.804 16.196m10.392-.393l-3.803-3.803m-2.786-2.786L5.804 5.411"/></svg>' +
+            'Settings</div>' +
             '<div class="nav-item" id="adminNavItem" style="display:none;" onclick="App.navigateTo(\'admin\')">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>' +
             'Admin</div>' +
@@ -207,6 +278,12 @@ const App = {
             '<div class="nav-item logout" onclick="App.logout()">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>' +
             'Logout</div>' +
+            '</div>' +
+            '</div>' +
+            '<div class="sidebar-footer">' +
+            '<div class="discord-promo">' +
+            '<p>Join our Discord!</p>' +
+            '<a href="#" class="discord-btn">Join Discord</a>' +
             '</div>' +
             '</div>' +
             '</nav>' +
@@ -243,18 +320,15 @@ const App = {
         this.startIntervals();
 
         if (this.isOnline) {
-            this.chatSubscription = SupaDB.subscribeToChatUpdates((newMessage) => {
-                this.loadChat();
-            });
-            this.coinflipSubscription = SupaDB.subscribeToCoinflipUpdates((payload) => {
-                this.loadCoinflips();
-            });
+            this.chatSubscription = SupaDB.subscribeToChatUpdates(() => this.loadChat());
+            this.coinflipSubscription = SupaDB.subscribeToCoinflipUpdates(() => this.loadCoinflips());
         }
 
         if (this.currentUser.isAdmin) {
             document.getElementById('adminNavItem').style.display = 'flex';
-            this.loadAdminPanel();
         }
+        
+        this.navigateTo('home');
     },
 
     startIntervals() {
@@ -268,18 +342,23 @@ const App = {
         const content = document.getElementById('pageContent');
         if (!content) return;
 
-        if (page === 'home') {
-            content.innerHTML = this.getHomeHTML();
-        } else if (page === 'coinflip') {
+        if (page === 'home') content.innerHTML = this.getHomeHTML();
+        else if (page === 'coinflip') {
             content.innerHTML = this.getCoinflipHTML();
             this.loadCoinflips();
-        } else if (page === 'profile') {
+        }
+        else if (page === 'profile') {
             content.innerHTML = this.getProfileHTML();
             this.updateUI();
-        } else if (page === 'leaderboard') {
+        }
+        else if (page === 'leaderboard') {
             content.innerHTML = this.getLeaderboardHTML();
             this.loadLeaderboard();
-        } else if (page === 'admin') {
+        }
+        else if (page === 'settings') {
+            content.innerHTML = this.getSettingsHTML();
+        }
+        else if (page === 'admin') {
             content.innerHTML = this.getAdminHTML();
             this.loadAdminPanel();
         }
@@ -287,7 +366,8 @@ const App = {
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         const navItems = document.querySelectorAll('.nav-item');
         for (let i = 0; i < navItems.length; i++) {
-            if (navItems[i].textContent.toLowerCase().includes(page)) {
+            const text = navItems[i].textContent.toLowerCase().trim();
+            if (text.includes(page)) {
                 navItems[i].classList.add('active');
                 break;
             }
@@ -297,29 +377,15 @@ const App = {
     getHomeHTML() {
         return '<div class="page active">' +
             '<div class="hero-section">' +
-            '<div class="hero-card welcome">' +
+            '<div class="hero-card">' +
             '<h3>Welcome to</h3><h2>BrainrotFlip</h2>' +
-            '<p>Best <strong>brainrot</strong> gambling</p>' +
+            '<p>The most <strong>epic</strong> gambling experience</p>' +
             '<button class="hero-btn primary" onclick="App.navigateTo(\'coinflip\')">Play Now</button>' +
-            '<div class="hero-decoration">🎰</div>' +
             '</div>' +
-            '<div class="hero-card race">' +
-            '<h3>Compete</h3><h2>WAGER RACE</h2>' +
-            '<p>Win <strong>prizes</strong></p>' +
-            '<button class="hero-btn secondary">Join</button>' +
-            '</div>' +
-            '</div>' +
-            '<div class="games-grid">' +
-            '<div class="game-card" onclick="App.navigateTo(\'coinflip\')">' +
-            '<div class="game-card-icon">🪙</div><h3>COINFLIP</h3>' +
-            '</div>' +
-            '<div class="game-card disabled">' +
-            '<div class="game-card-icon">🎰</div><h3>JACKPOT</h3>' +
-            '<div style="font-size:0.8rem;opacity:0.8;">Soon</div>' +
-            '</div>' +
-            '<div class="game-card disabled">' +
-            '<div class="game-card-icon">📈</div><h3>UPGRADER</h3>' +
-            '<div style="font-size:0.8rem;opacity:0.8;">Soon</div>' +
+            '<div class="hero-card">' +
+            '<h3>Compete in</h3><h2>WAGER RACE</h2>' +
+            '<p>Win <strong>massive prizes</strong></p>' +
+            '<button class="hero-btn secondary">Coming Soon</button>' +
             '</div>' +
             '</div>' +
             '</div>';
@@ -329,37 +395,42 @@ const App = {
         return '<div class="page active">' +
             '<h1 class="page-title">🪙 Coinflip</h1>' +
             '<div class="stats-row">' +
-            '<div class="stat-card"><div class="value" id="cfStatRooms">0</div><div class="label">Rooms</div></div>' +
-            '<div class="stat-card"><div class="value" id="cfStatValue">0</div><div class="label">Value</div></div>' +
-            '<div class="stat-card"><div class="value" id="cfStatItems">0</div><div class="label">Items</div></div>' +
+            '<div class="stat-card"><div class="value" id="cfStatRooms">0</div><div class="label">Active Rooms</div></div>' +
+            '<div class="stat-card"><div class="value" id="cfStatValue">0</div><div class="label">Total Value</div></div>' +
+            '<div class="stat-card"><div class="value" id="cfStatItems">0</div><div class="label">Items Wagered</div></div>' +
             '</div>' +
             '<div class="actions-row">' +
-            '<button class="action-btn create" onclick="App.openCreateModal()">Create</button>' +
+            '<button class="action-btn create" onclick="App.openCreateModal()">Create Coinflip</button>' +
             '</div>' +
             '<div class="filters-row">' +
-            '<div class="filter-group"><span>🟢</span><span id="filterHeadsCount">0</span></div>' +
-            '<div class="filter-group"><span>🔴</span><span id="filterTailsCount">0</span></div>' +
+            '<div class="filter-group"><span>🟣</span><span id="filterPurpleCount">0</span> Purple</div>' +
+            '<div class="filter-group"><span>🟠</span><span id="filterOrangeCount">0</span> Orange</div>' +
             '</div>' +
             '<div class="coinflip-list" id="coinflipList"></div>' +
             '</div>';
     },
 
     getProfileHTML() {
+        const badges = this.renderBadges();
         return '<div class="page active">' +
             '<div class="profile-header-card">' +
-            '<img class="profile-avatar-large" id="profileAvatar" src="">' +
+            '<img class="profile-avatar-large" id="profileAvatar" src="' + this.currentUser.avatar + '">' +
             '<div class="profile-details">' +
-            '<h2 id="profileUsername">' + this.currentUser.username + '</h2>' +
+            '<h2 id="profileUsername">' + this.currentUser.username + badges + '</h2>' +
             '<div>Level <span id="profileLevel">' + this.currentUser.level + '</span></div>' +
+            (this.currentUser.discordLinked ? '<div style="color:var(--accent-green);margin-top:0.5rem;">✅ Discord: ' + this.currentUser.discordUsername + '</div>' : '') +
             '</div>' +
             '</div>' +
             '<div class="profile-stats-grid">' +
-            '<div class="profile-stat-card"><div class="icon">💎</div><div class="value" id="profileWagered">0</div><div class="label">Wagered</div></div>' +
-            '<div class="profile-stat-card"><div class="icon">🏆</div><div class="value" id="profileWon">0</div><div class="label">Won</div></div>' +
-            '<div class="profile-stat-card"><div class="icon">📉</div><div class="value" id="profileLost">0</div><div class="label">Lost</div></div>' +
+            '<div class="profile-stat-card"><div class="icon">💎</div><div class="value" id="profileWagered">0</div><div class="label">Total Wagered</div></div>' +
+            '<div class="profile-stat-card"><div class="icon">🏆</div><div class="value" id="profileWon">0</div><div class="label">Total Won</div></div>' +
+            '<div class="profile-stat-card"><div class="icon">📉</div><div class="value" id="profileLost">0</div><div class="label">Total Lost</div></div>' +
             '</div>' +
             '<div class="inventory-section">' +
-            '<h3>📦 Inventory</h3>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;">' +
+            '<h3>📦 My Inventory</h3>' +
+            '<button class="action-btn create" onclick="App.openWithdrawModal()">Withdraw Items</button>' +
+            '</div>' +
             '<div class="inventory-grid" id="profileInventory"></div>' +
             '</div>' +
             '</div>';
@@ -372,23 +443,54 @@ const App = {
             '</div>';
     },
 
+    getSettingsHTML() {
+        return '<div class="page active">' +
+            '<h1 class="page-title">⚙️ Settings</h1>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">🔗 Link Discord Account</h3>' +
+            (this.currentUser.discordLinked ? 
+                '<div style="color:var(--accent-green);font-weight:600;">✅ Discord linked: ' + this.currentUser.discordUsername + '</div>' :
+                '<p style="color:var(--text-secondary);margin-bottom:1rem;">Link your Discord to receive withdrawal notifications</p>' +
+                '<button class="modal-btn" onclick="App.linkDiscord()">Link Discord</button>'
+            ) +
+            '</div>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;">' +
+            '<h3 style="margin-bottom:1rem;">👤 Account Info</h3>' +
+            '<p style="color:var(--text-secondary);">Username: <strong style="color:var(--text-primary);">' + this.currentUser.username + '</strong></p>' +
+            '<p style="color:var(--text-secondary);margin-top:0.5rem;">Email: <strong style="color:var(--text-primary);">' + (this.currentUser.email || 'Not set') + '</strong></p>' +
+            '</div>' +
+            '</div>';
+    },
+
     getAdminHTML() {
         return '<div class="page active">' +
-            '<h1 class="page-title">🛡️ Admin</h1>' +
-            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;margin-bottom:1.5rem;">' +
-            '<h3 style="margin-bottom:1rem;">➕ Add Items</h3>' +
-            '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username" style="margin-bottom:0;">' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">' +
-            '<select class="modal-input" id="adminAddItem" style="margin-bottom:0;"></select>' +
-            '<input type="number" class="modal-input" id="adminAddQty" value="1" min="1" style="margin-bottom:0;">' +
+            '<h1 class="page-title">🛡️ Admin Panel</h1>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">➕ Add Items to User</h3>' +
+            '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username">' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">' +
+            '<select class="modal-input" id="adminAddItem"></select>' +
+            '<input type="number" class="modal-input" id="adminAddQty" value="1" min="1">' +
             '</div>' +
-            '<button class="modal-btn" onclick="App.adminAddItem()">Add</button>' +
+            '<button class="modal-btn" onclick="App.adminAddItem()">Add Items</button>' +
             '</div>' +
-            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:16px;padding:1.5rem;">' +
-            '<h3 style="margin-bottom:1rem;">👥 Users</h3>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">👥 All Users</h3>' +
             '<div id="adminUsersList"></div>' +
             '</div>' +
             '</div>';
+    },
+
+    renderBadges() {
+        if (!this.currentUser.badges || this.currentUser.badges.length === 0) return '';
+        let html = ' ';
+        for (let i = 0; i < this.currentUser.badges.length; i++) {
+            const badge = this.currentUser.badges[i];
+            if (badge === 'lvl99') html += '<img src="Badge.99LvL.png" class="user-badge" title="Level 99">';
+            else if (badge === 'whale') html += '<img src="Badge.Whale.png" class="user-badge" title="Whale">';
+            else if (badge === 'highroller') html += '<img src="HighRoller.LvL.png" class="user-badge" title="High Roller">';
+        }
+        return html;
     },
 
     async updateUI() {
@@ -404,12 +506,10 @@ const App = {
         if (levelEl) levelEl.textContent = this.currentUser.level;
         if (avatarEl) avatarEl.src = this.currentUser.avatar;
 
-        const profileAvatar = document.getElementById('profileAvatar');
         const profileWagered = document.getElementById('profileWagered');
         const profileWon = document.getElementById('profileWon');
         const profileLost = document.getElementById('profileLost');
 
-        if (profileAvatar) profileAvatar.src = this.currentUser.avatar;
         if (profileWagered) profileWagered.textContent = this.formatNumber(this.currentUser.stats.wagered);
         if (profileWon) profileWon.textContent = this.formatNumber(this.currentUser.stats.won);
         if (profileLost) profileLost.textContent = this.formatNumber(this.currentUser.stats.lost);
@@ -423,7 +523,7 @@ const App = {
 
         const items = this.currentUser.inventory;
         if (items.length === 0) {
-            container.innerHTML = '<div class="empty-inventory">No items</div>';
+            container.innerHTML = '<div class="empty-inventory">No items in inventory</div>';
             return;
         }
 
@@ -456,30 +556,30 @@ const App = {
         const roomsEl = document.getElementById('cfStatRooms');
         const valueEl = document.getElementById('cfStatValue');
         const itemsEl = document.getElementById('cfStatItems');
-        const headsEl = document.getElementById('filterHeadsCount');
-        const tailsEl = document.getElementById('filterTailsCount');
+        const purpleEl = document.getElementById('filterPurpleCount');
+        const orangeEl = document.getElementById('filterOrangeCount');
 
         if (roomsEl) roomsEl.textContent = coinflips.length;
         
         let totalValue = 0;
         let totalItems = 0;
-        let headsCount = 0;
+        let purpleCount = 0;
         
         for (let i = 0; i < coinflips.length; i++) {
             const cf = coinflips[i];
             totalValue += this.isOnline ? cf.total_value : cf.totalValue;
             totalItems += this.isOnline ? cf.creator_items.length : cf.creatorItems.length;
             const side = this.isOnline ? cf.creator_side : cf.creatorSide;
-            if (side === 'H') headsCount++;
+            if (side === 'purple') purpleCount++;
         }
         
         if (valueEl) valueEl.textContent = this.formatNumber(totalValue);
         if (itemsEl) itemsEl.textContent = totalItems;
-        if (headsEl) headsEl.textContent = headsCount;
-        if (tailsEl) tailsEl.textContent = coinflips.length - headsCount;
+        if (purpleEl) purpleEl.textContent = purpleCount;
+        if (orangeEl) orangeEl.textContent = coinflips.length - purpleCount;
 
         if (coinflips.length === 0) {
-            container.innerHTML = '<div class="no-games-message"><div class="icon">🪙</div><p>No active games</p></div>';
+            container.innerHTML = '<div class="no-games-message"><div class="icon">🪙</div><p>No active games</p><p style="font-size:0.9rem;margin-top:0.5rem;">Be the first to create one!</p></div>';
             return;
         }
 
@@ -493,20 +593,20 @@ const App = {
             const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
             const cfId = this.isOnline ? cf.id : cf.id;
             
-            const sideClass = creatorSide === 'H' ? 'green' : 'red';
+            const sideClass = creatorSide === 'purple' ? 'purple' : 'orange';
             
             html += '<div class="coinflip-card">' +
                 '<div class="cf-players">' +
-                '<div class="cf-player ' + sideClass + '">' +
+                '<div class="cf-player">' +
                 '<img class="cf-player-avatar" src="' + creatorAvatar + '">' +
                 '<div class="cf-player-info">' +
                 '<div class="name ' + sideClass + '">' + creator + '</div>' +
-                '<div style="font-size:0.8rem;color:var(--text-secondary);">' + creatorItems.length + ' items</div>' +
+                '<div style="font-size:0.85rem;color:var(--text-secondary);">' + creatorItems.length + ' items</div>' +
                 '</div>' +
                 '</div>' +
                 '<div class="vs-badge">VS</div>' +
                 '<div class="cf-player waiting">' +
-                '<img class="cf-player-avatar" src="https://tr.rbxcdn.com/30DAY-AvatarHeadshot-B0C12D22C5A8D936F9DD4B5C5A770B8E-Png/150/150/AvatarHeadshot/Webp/noFilter">' +
+                '<img class="cf-player-avatar" src="https://ui-avatars.com/api/?name=?&background=2a2e3a&color=8b8fa3&size=128">' +
                 '<div class="cf-player-info">' +
                 '<div class="name waiting">Waiting...</div>' +
                 '</div>' +
@@ -529,9 +629,127 @@ const App = {
         container.innerHTML = html;
     },
 
+    linkDiscord() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'linkDiscordModal';
+        modal.innerHTML = '<div class="modal">' +
+            '<div class="modal-header">' +
+            '<h2>🔗 Link Discord</h2>' +
+            '<button class="modal-close" onclick="App.closeModal(\'linkDiscordModal\')">×</button>' +
+            '</div>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1.5rem;">To link your Discord account, join our server and open a ticket in <strong>#link-account</strong></p>' +
+            '<div style="background:var(--bg-tertiary);padding:1.25rem;border-radius:12px;margin-bottom:1.5rem;">' +
+            '<p style="font-weight:600;margin-bottom:0.75rem;">Steps:</p>' +
+            '<ol style="color:var(--text-secondary);font-size:0.95rem;margin-left:1.25rem;line-height:1.8;">' +
+            '<li>Join our Discord server</li>' +
+            '<li>Go to #link-account</li>' +
+            '<li>Open a ticket</li>' +
+            '<li>Provide your username: <strong style="color:var(--accent-purple);">' + this.currentUser.username + '</strong></li>' +
+            '<li>Staff will link your account</li>' +
+            '</ol>' +
+            '</div>' +
+            '<a href="#" class="discord-btn" style="width:100%;display:flex;justify-content:center;">Join Discord Server</a>' +
+            '</div>';
+        document.body.appendChild(modal);
+    },
+
+    openWithdrawModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'withdrawModal';
+        modal.innerHTML = '<div class="modal wide">' +
+            '<div class="modal-header">' +
+            '<h2>💎 Withdraw Items</h2>' +
+            '<button class="modal-close" onclick="App.closeModal(\'withdrawModal\')">×</button>' +
+            '</div>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Select items to withdraw:</p>' +
+            '<div class="items-grid" id="withdrawItemsGrid">' +
+            (this.currentUser.inventory.length === 0 ? 
+                '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items to withdraw</p>' :
+                this.currentUser.inventory.map((item, i) => 
+                    '<div class="item-card" data-id="' + item.uniqueId + '" onclick="App.toggleWithdrawItem(this)">' +
+                    '<div class="icon">' + item.icon + '</div>' +
+                    '<div class="name">' + item.name + '</div>' +
+                    '<div class="value">' + item.value + ' 💎</div>' +
+                    '</div>'
+                ).join('')
+            ) +
+            '</div>' +
+            '<div class="selected-summary">' +
+            '<span class="label">Selected Total:</span>' +
+            '<span class="total" id="withdrawTotal">0 💎</span>' +
+            '</div>' +
+            '<button class="modal-btn success" onclick="App.confirmWithdraw()">Request Withdrawal</button>' +
+            '</div>';
+        document.body.appendChild(modal);
+        this.selectedWithdrawItems = [];
+    },
+
+    toggleWithdrawItem(el) {
+        const uniqueId = el.dataset.id;
+        if (el.classList.contains('selected')) {
+            el.classList.remove('selected');
+            this.selectedWithdrawItems = this.selectedWithdrawItems.filter(id => id !== uniqueId);
+        } else {
+            el.classList.add('selected');
+            this.selectedWithdrawItems.push(uniqueId);
+        }
+
+        let total = 0;
+        for (let i = 0; i < this.selectedWithdrawItems.length; i++) {
+            const item = this.currentUser.inventory.find(it => it.uniqueId === this.selectedWithdrawItems[i]);
+            if (item) total += item.value;
+        }
+        
+        const totalEl = document.getElementById('withdrawTotal');
+        if (totalEl) totalEl.textContent = this.formatNumber(total) + ' 💎';
+    },
+
+    async confirmWithdraw() {
+        if (!this.selectedWithdrawItems || this.selectedWithdrawItems.length === 0) {
+            this.showToast('Select items to withdraw!', 'error');
+            return;
+        }
+
+        if (!this.currentUser.discordLinked) {
+            this.showToast('Link your Discord first!', 'error');
+            this.closeModal('withdrawModal');
+            setTimeout(() => this.navigateTo('settings'), 500);
+            return;
+        }
+
+        this.closeModal('withdrawModal');
+        this.showToast('Withdrawal requested! Open a ticket on Discord in #withdraw category.', 'success');
+    },
+
+    openWalletModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'walletModal';
+        modal.innerHTML = '<div class="modal">' +
+            '<div class="modal-header">' +
+            '<h2>💎 Deposit Items</h2>' +
+            '<button class="modal-close" onclick="App.closeModal(\'walletModal\')">×</button>' +
+            '</div>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1.5rem;">To deposit items, contact staff on Discord.</p>' +
+            '<div style="background:var(--bg-tertiary);padding:1.25rem;border-radius:12px;margin-bottom:1.5rem;">' +
+            '<p style="font-weight:600;margin-bottom:0.75rem;">How to Deposit:</p>' +
+            '<ol style="color:var(--text-secondary);font-size:0.95rem;margin-left:1.25rem;line-height:1.8;">' +
+            '<li>Join our Discord server</li>' +
+            '<li>Open a ticket in #deposit</li>' +
+            '<li>Trade your items to staff</li>' +
+            '<li>Items will be added instantly</li>' +
+            '</ol>' +
+            '</div>' +
+            '<a href="#" class="discord-btn" style="width:100%;display:flex;justify-content:center;">Join Discord Server</a>' +
+            '</div>';
+        document.body.appendChild(modal);
+    },
+
     async openCreateModal() {
         this.selectedItems = [];
-        this.selectedSide = 'H';
+        this.selectedSide = 'purple';
         
         if (this.isOnline) {
             const user = await SupaDB.getUser(this.currentUser.username);
@@ -546,7 +764,7 @@ const App = {
         
         let itemsHtml = '';
         if (this.currentUser.inventory.length === 0) {
-            itemsHtml = '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items</p>';
+            itemsHtml = '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items in inventory</p>';
         } else {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
@@ -563,22 +781,22 @@ const App = {
             '<h2>🎰 Create Coinflip</h2>' +
             '<button class="modal-close" onclick="App.closeModal(\'createCfModal\')">×</button>' +
             '</div>' +
-            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Select items:</p>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Select items to wager:</p>' +
             '<div class="items-grid" id="createItemsGrid">' + itemsHtml + '</div>' +
             '<div class="selected-summary">' +
             '<span class="label">Total:</span>' +
             '<span class="total" id="createTotal">0 💎</span>' +
             '</div>' +
-            '<p style="color:var(--text-secondary);margin-bottom:0.75rem;">Choose side:</p>' +
+            '<p style="color:var(--text-secondary);margin-bottom:0.75rem;">Choose your side:</p>' +
             '<div class="side-selector">' +
-            '<div class="side-option green selected" data-side="H" onclick="App.selectSide(\'H\',this)">' +
-            '<div class="icon">🟢</div><div>Heads</div>' +
+            '<div class="side-option purple selected" data-side="purple" onclick="App.selectSide(\'purple\',this)">' +
+            '<div class="icon">🟣</div><div>Purple</div>' +
             '</div>' +
-            '<div class="side-option" data-side="T" onclick="App.selectSide(\'T\',this)">' +
-            '<div class="icon">🔴</div><div>Tails</div>' +
+            '<div class="side-option" data-side="orange" onclick="App.selectSide(\'orange\',this)">' +
+            '<div class="icon">🟠</div><div>Orange</div>' +
             '</div>' +
             '</div>' +
-            '<button class="modal-btn success" onclick="App.createCoinflip()">Create</button>' +
+            '<button class="modal-btn success" onclick="App.createCoinflip()">Create Coinflip</button>' +
             '</div>';
             
         document.body.appendChild(modal);
@@ -610,7 +828,7 @@ const App = {
         
         let itemsHtml = '';
         if (this.currentUser.inventory.length === 0) {
-            itemsHtml = '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items</p>';
+            itemsHtml = '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items in inventory</p>';
         } else {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
@@ -627,14 +845,14 @@ const App = {
             '<h2>⚔️ Join Coinflip</h2>' +
             '<button class="modal-close" onclick="App.closeModal(\'joinCfModal\')">×</button>' +
             '</div>' +
-            '<p>Joining: <strong>' + creator + '</strong></p>' +
-            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Required: <strong style="color:var(--accent-green);">' + this.formatNumber(totalValue) + ' 💎</strong></p>' +
+            '<p>Joining game by: <strong style="color:var(--accent-purple);">' + creator + '</strong></p>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Required value: <strong style="color:var(--accent-purple);">' + this.formatNumber(totalValue) + ' 💎</strong> (90-110%)</p>' +
             '<div class="items-grid" id="joinItemsGrid">' + itemsHtml + '</div>' +
             '<div class="selected-summary">' +
             '<span class="label">Total:</span>' +
             '<span class="total" id="joinTotal">0 💎</span>' +
             '</div>' +
-            '<button class="modal-btn success" onclick="App.confirmJoinCoinflip()">Join</button>' +
+            '<button class="modal-btn success" onclick="App.confirmJoinCoinflip()">Join Game</button>' +
             '</div>';
             
         document.body.appendChild(modal);
@@ -644,9 +862,7 @@ const App = {
         const uniqueId = el.dataset.id;
         if (el.classList.contains('selected')) {
             el.classList.remove('selected');
-            this.selectedItems = this.selectedItems.filter(function(i) {
-                return i.uniqueId !== uniqueId;
-            });
+            this.selectedItems = this.selectedItems.filter(i => i.uniqueId !== uniqueId);
         } else {
             el.classList.add('selected');
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
@@ -668,13 +884,12 @@ const App = {
 
     selectSide(side, el) {
         this.selectedSide = side;
-        const options = document.querySelectorAll('.side-option');
-        for (let i = 0; i < options.length; i++) {
-            options[i].classList.remove('selected', 'green', 'red');
-            if (options[i] === el) {
-                options[i].classList.add('selected', side === 'H' ? 'green' : 'red');
+        document.querySelectorAll('.side-option').forEach(opt => {
+            opt.classList.remove('selected', 'purple', 'orange');
+            if (opt === el) {
+                opt.classList.add('selected', side);
             }
-        }
+        });
     },
 
     async createCoinflip() {
@@ -735,8 +950,8 @@ const App = {
     },
 
     async startCoinflipAnimation(cf) {
-        const winnerSide = Math.random() < 0.5 ? 'H' : 'T';
-        const videoSrc = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
+        const winnerSide = Math.random() < 0.5 ? 'purple' : 'orange';
+        const videoSrc = winnerSide === 'purple' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
 
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
@@ -753,8 +968,8 @@ const App = {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.id = 'cfAnimationModal';
-        modal.innerHTML = '<div class="modal" style="max-width:520px;text-align:center;">' +
-            '<h2 style="margin-bottom:1rem;">⚡ COINFLIP ⚡</h2>' +
+        modal.innerHTML = '<div class="modal" style="max-width:620px;text-align:center;">' +
+            '<h2 style="margin-bottom:2rem;font-size:2rem;">⚡ COINFLIP BATTLE ⚡</h2>' +
             '<div class="cf-arena">' +
             '<div class="arena-players">' +
             '<div class="arena-player">' +
@@ -762,15 +977,15 @@ const App = {
             '<div class="name">' + creator + '</div>' +
             '<div class="value">' + this.formatNumber(creatorValue) + ' 💎</div>' +
             '</div>' +
-            '<div class="vs-badge">VS</div>' +
-            '<div class="arena-player red">' +
+            '<div class="vs-badge" style="font-size:2rem;">VS</div>' +
+            '<div class="arena-player orange">' +
             '<img src="' + opponentAvatar + '">' +
             '<div class="name">' + opponent + '</div>' +
             '<div class="value">' + this.formatNumber(opponentValue) + ' 💎</div>' +
             '</div>' +
             '</div>' +
             '<div class="coin-container">' +
-            '<video id="coinVideo" style="width:300px;height:300px;border-radius:16px;" autoplay muted>' +
+            '<video id="coinVideo" style="width:350px;height:350px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);" autoplay muted>' +
             '<source src="' + videoSrc + '" type="video/mp4">' +
             '</video>' +
             '</div>' +
@@ -815,7 +1030,7 @@ const App = {
 
             setTimeout(function() {
                 self.closeModal('cfAnimationModal');
-            }, 3000);
+            }, 3500);
         };
     },
 
@@ -849,7 +1064,7 @@ const App = {
         container.scrollTop = container.scrollHeight;
 
         const onlineCount = document.getElementById('onlineCount');
-        if (onlineCount) onlineCount.textContent = Math.floor(Math.random() * 50) + 10;
+        if (onlineCount) onlineCount.textContent = Math.floor(Math.random() * 100) + 20;
     },
 
     async sendChatMessage() {
@@ -942,12 +1157,12 @@ const App = {
                     ? await SupaDB.getUserBalance(u.username)
                     : DB.getUserBalance(u.username);
                     
-                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:0.875rem;border-bottom:1px solid var(--border-color);">' +
+                html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;border-bottom:1px solid var(--border-color);">' +
                     '<div style="display:flex;align-items:center;gap:0.75rem;">' +
-                    '<img src="' + u.avatar + '" style="width:38px;height:38px;border-radius:50%;">' +
+                    '<img src="' + u.avatar + '" style="width:42px;height:42px;border-radius:50%;">' +
                     '<div>' +
-                    '<div style="font-weight:600;">' + u.username + '</div>' +
-                    '<div style="font-size:0.8rem;color:var(--text-secondary);">Balance: ' + this.formatNumber(balance) + ' 💎</div>' +
+                    '<div style="font-weight:700;">' + u.username + '</div>' +
+                    '<div style="font-size:0.85rem;color:var(--text-secondary);">Balance: ' + this.formatNumber(balance) + ' 💎</div>' +
                     '</div>' +
                     '</div>' +
                     '</div>';
@@ -992,29 +1207,6 @@ const App = {
         this.loadAdminPanel();
     },
 
-    openWalletModal() {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay';
-        modal.id = 'walletModal';
-        modal.innerHTML = '<div class="modal">' +
-            '<div class="modal-header">' +
-            '<h2>💎 Deposit</h2>' +
-            '<button class="modal-close" onclick="App.closeModal(\'walletModal\')">×</button>' +
-            '</div>' +
-            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Contact staff on Discord to deposit.</p>' +
-            '<div style="background:var(--bg-tertiary);padding:1.25rem;border-radius:12px;margin-bottom:1rem;">' +
-            '<p style="font-weight:600;margin-bottom:0.75rem;">How to Deposit:</p>' +
-            '<ol style="color:var(--text-secondary);font-size:0.9rem;margin-left:1.25rem;">' +
-            '<li>Join Discord</li>' +
-            '<li>Open ticket</li>' +
-            '<li>Trade items to staff</li>' +
-            '<li>Items added to account</li>' +
-            '</ol>' +
-            '</div>' +
-            '</div>';
-        document.body.appendChild(modal);
-    },
-
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) modal.remove();
@@ -1044,7 +1236,7 @@ const App = {
             setTimeout(function() {
                 toast.remove();
             }, 300);
-        }, 3000);
+        }, 3500);
     },
 
     logout() {
