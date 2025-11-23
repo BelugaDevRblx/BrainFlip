@@ -1179,7 +1179,7 @@ const App = {
             '<div class="bloxyx-username">' + opponent + '</div>' +
             '</div>' +
             '</div>' +
-            '<div class="bloxyx-game-id"># ' + cfId.substring(3, 20) + '</div>' +
+            '<div class="bloxyx-game-id"># ' + String(cfId).substring(3, 20) + '</div>' +
             '<div class="bloxyx-items-section">' +
             '<div class="bloxyx-items-column">' +
             '<div class="bloxyx-total"><span class="coin-icon">💎</span> B$' + this.formatNumber(creatorTotal / 1000) + '</div>' +
