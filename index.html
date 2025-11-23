@@ -5,11 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BrainrotFlip</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loading-logo">
+            <div class="loading-logo-icon">B</div>
+            <span class="loading-logo-text">BrainrotFlip</span>
+        </div>
+        <div class="loading-bar-container"><div class="loading-bar" id="loadingBar"></div></div>
+        <div class="loading-text" id="loadingText">Loading...</div>
+    </div>
     <div id="root"></div>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
     <script src="database.js"></script>
     <script src="app.js"></script>
 </body>
