@@ -506,6 +506,21 @@ const App = {
         return '<div class="page active">' +
             '<h1 class="page-title">🛡️ Admin Panel</h1>' +
             '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">⚠️ Site Maintenance</h3>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Enable maintenance mode to block all users from accessing the site</p>' +
+            '<button class="modal-btn" style="background:var(--accent-orange);" onclick="App.toggleMaintenance()">Toggle Maintenance</button>' +
+            '</div>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">🗑️ Reset User Inventory</h3>' +
+            '<input type="text" class="modal-input" id="adminResetUsername" placeholder="Username">' +
+            '<button class="modal-btn" style="background:var(--accent-orange);" onclick="App.adminResetInventory()">Reset Inventory</button>' +
+            '</div>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">💀 WIPE ALL DATA</h3>' +
+            '<p style="color:var(--accent-red);margin-bottom:1rem;font-weight:600;">⚠️ WARNING: This will reset ALL inventories, stats, leaderboard, coinflips and chat!</p>' +
+            '<button class="modal-btn" style="background:var(--accent-red);" onclick="App.adminWipeAll()">WIPE EVERYTHING</button>' +
+            '</div>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
             '<h3 style="margin-bottom:1.5rem;">➕ Add Items to User</h3>' +
             '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username">' +
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">' +
@@ -586,9 +601,24 @@ const App = {
     },
 
     async loadCoinflips() {
-        const coinflips = this.isOnline 
-            ? await SupaDB.getActiveCoinflips()
-            : DB.getActiveCoinflips();
+        let coinflips = [];
+        if (this.isOnline) {
+            const active = await SupaDB.getActiveCoinflips();
+            const { data: finished } = await supabase
+                .from('coinflips')
+                .select('*')
+                .eq('status', 'finished')
+                .order('finished_at', { ascending: false })
+                .limit(5);
+            coinflips = active.concat(finished || []);
+        } else {
+            const active = DB.getActiveCoinflips();
+            const allCoinflips = DB.getAllCoinflips();
+            const finished = allCoinflips.filter(function(cf) {
+                return cf.status === 'finished';
+            });
+            coinflips = active.concat(finished);
+        }
             
         const container = document.getElementById('coinflipList');
         if (!container) return;
@@ -599,14 +629,19 @@ const App = {
         const headsEl = document.getElementById('filterHeadsCount');
         const tailsEl = document.getElementById('filterTailsCount');
 
-        if (roomsEl) roomsEl.textContent = coinflips.length;
+        const activeCoinflips = coinflips.filter(function(cf) {
+            const status = this.isOnline ? cf.status : cf.status;
+            return status === 'waiting';
+        }.bind(this));
+
+        if (roomsEl) roomsEl.textContent = activeCoinflips.length;
         
         let totalValue = 0;
         let totalItems = 0;
         let headsCount = 0;
         
-        for (let i = 0; i < coinflips.length; i++) {
-            const cf = coinflips[i];
+        for (let i = 0; i < activeCoinflips.length; i++) {
+            const cf = activeCoinflips[i];
             totalValue += this.isOnline ? cf.total_value : cf.totalValue;
             totalItems += this.isOnline ? cf.creator_items.length : cf.creatorItems.length;
             const side = this.isOnline ? cf.creator_side : cf.creatorSide;
@@ -616,7 +651,7 @@ const App = {
         if (valueEl) valueEl.textContent = this.formatNumber(totalValue);
         if (itemsEl) itemsEl.textContent = totalItems;
         if (headsEl) headsEl.textContent = headsCount;
-        if (tailsEl) tailsEl.textContent = coinflips.length - headsCount;
+        if (tailsEl) tailsEl.textContent = activeCoinflips.length - headsCount;
 
         if (coinflips.length === 0) {
             container.innerHTML = '<div class="no-games-message"><div class="icon">🪙</div><p>No active games</p><p style="font-size:0.9rem;margin-top:0.5rem;">Be the first to create one!</p></div>';
@@ -626,12 +661,46 @@ const App = {
         let html = '';
         for (let i = 0; i < coinflips.length; i++) {
             const cf = coinflips[i];
+            const status = this.isOnline ? cf.status : cf.status;
             const creator = this.isOnline ? cf.creator : cf.creator;
             const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
             const creatorSide = this.isOnline ? cf.creator_side : cf.creatorSide;
             const creatorItems = this.isOnline ? cf.creator_items : cf.creatorItems;
             const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
             const cfId = this.isOnline ? cf.id : cf.id;
+            
+            if (status === 'finished') {
+                const opponent = this.isOnline ? cf.opponent : cf.opponent;
+                const opponentAvatar = this.isOnline ? cf.opponent_avatar : cf.opponentAvatar;
+                const winner = this.isOnline ? cf.winner : cf.winner;
+                const winnerSide = this.isOnline ? cf.winner_side : cf.winnerSide;
+                const winnerSideImg = winnerSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+                
+                html += '<div class="coinflip-card" style="border-color:var(--accent-green);opacity:0.9;">' +
+                    '<div class="cf-players">' +
+                    '<div class="cf-player' + (winner === creator ? '' : ' waiting') + '">' +
+                    '<img class="cf-player-avatar" src="' + creatorAvatar + '">' +
+                    '<div class="cf-player-info">' +
+                    '<div class="name ' + (winner === creator ? 'purple' : 'waiting') + '">' + creator + (winner === creator ? ' 🏆' : '') + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<img src="' + winnerSideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--accent-green);">' +
+                    '<div class="vs-badge">VS</div>' +
+                    '<div class="cf-player' + (winner === opponent ? '' : ' waiting') + '">' +
+                    '<img class="cf-player-avatar" src="' + opponentAvatar + '">' +
+                    '<div class="cf-player-info">' +
+                    '<div class="name ' + (winner === opponent ? 'orange' : 'waiting') + '">' + opponent + (winner === opponent ? ' 🏆' : '') + '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '</div>' +
+                    '<div class="cf-value">' +
+                    '<div class="amount" style="color:var(--accent-green);">' + this.formatNumber(totalValue * 2) + ' 💎</div>' +
+                    '<div class="label">Winner Pot</div>' +
+                    '</div>' +
+                    '<span style="color:var(--accent-green);font-weight:700;">FINISHED</span>' +
+                    '</div>';
+                continue;
+            }
             
             const sideImg = creatorSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
             
@@ -1052,8 +1121,9 @@ const App = {
             '<img src="' + opponentSideImg + '" style="width:42px;height:42px;margin-top:0.5rem;border-radius:50%;border:2px solid var(--accent-orange);">' +
             '</div>' +
             '</div>' +
-            '<div class="coin-container">' +
-            '<video id="coinVideo" style="width:350px;height:350px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);" autoplay muted>' +
+            '<div id="countdownContainer" style="font-size:5rem;font-weight:900;color:var(--accent-purple);margin:2rem 0;">3</div>' +
+            '<div class="coin-container" style="display:none;">' +
+            '<video id="coinVideo" style="width:350px;height:350px;border-radius:20px;box-shadow:0 20px 60px rgba(0,0,0,0.5);" muted>' +
             '<source src="' + videoSrc + '" type="video/mp4">' +
             '</video>' +
             '</div>' +
@@ -1062,6 +1132,23 @@ const App = {
             '</div>';
             
         document.body.appendChild(modal);
+
+        // Countdown 3, 2, 1
+        const countdown = document.getElementById('countdownContainer');
+        let count = 3;
+        const countInterval = setInterval(function() {
+            count--;
+            if (count > 0) {
+                countdown.textContent = count;
+            } else {
+                clearInterval(countInterval);
+                countdown.style.display = 'none';
+                document.querySelector('.coin-container').style.display = 'flex';
+                
+                const video = document.getElementById('coinVideo');
+                video.play();
+            }
+        }, 1000);
 
         const video = document.getElementById('coinVideo');
         const self = this;
@@ -1090,7 +1177,9 @@ const App = {
                     gamesWon: user.stats_games_won || 0
                 };
             } else {
-                self.currentUser = DB.getUser(self.currentUser.username);
+                const user = DB.getUser(self.currentUser.username);
+                self.currentUser.inventory = user.inventory;
+                self.currentUser.stats = user.stats;
             }
             
             self.updateUI();
@@ -1453,7 +1542,7 @@ const App = {
         const input = document.getElementById('chatInput');
         if (!input) return;
 
-        const msg = input.value.trim();
+        let msg = input.value.trim();
         if (!msg) return;
 
         // Vérifier si c'est une commande /tip
@@ -1467,10 +1556,23 @@ const App = {
             }
         }
 
+        // Filtrer les bad words
+        const filtered = this.isOnline
+            ? SupaDB.filterBadWords(msg)
+            : DB.filterBadWords(msg);
+
+        // Vérifier caractères spéciaux bizarres
+        const validChars = /^[a-zA-Z0-9\s\-_!@#$%^&*(),.?":{}|<>]+$/;
+        if (!validChars.test(filtered)) {
+            this.showToast('Invalid characters detected!', 'error');
+            input.value = '';
+            return;
+        }
+
         if (this.isOnline) {
-            await SupaDB.sendChatMessage(this.currentUser.username, msg);
+            await SupaDB.sendChatMessage(this.currentUser.username, filtered);
         } else {
-            DB.addChatMessage(this.currentUser.username, msg);
+            DB.addChatMessage(this.currentUser.username, filtered);
         }
         
         input.value = '';
@@ -1567,6 +1669,61 @@ const App = {
             this.updateUI();
         } else {
             this.showToast('Failed to send tip!', 'error');
+        }
+    },
+
+    async adminResetInventory() {
+        const input = document.getElementById('adminResetUsername');
+        if (!input) return;
+
+        const username = input.value.trim();
+        if (!username) {
+            this.showToast('Enter username!', 'error');
+            return;
+        }
+
+        if (!confirm('Reset inventory for ' + username + '?')) return;
+
+        const success = this.isOnline
+            ? await SupaDB.resetUserInventory(username)
+            : DB.resetUserInventory(username);
+
+        if (success) {
+            this.showToast('Inventory reset for ' + username, 'success');
+            input.value = '';
+            this.loadAdminPanel();
+        } else {
+            this.showToast('Failed to reset!', 'error');
+        }
+    },
+
+    async adminWipeAll() {
+        if (!confirm('⚠️ WIPE ALL DATA? This cannot be undone!')) return;
+        if (!confirm('Are you ABSOLUTELY sure? This will reset EVERYTHING!')) return;
+
+        this.showToast('Wiping all data...', 'info');
+
+        const success = this.isOnline
+            ? await SupaDB.wipeAllData()
+            : DB.wipeAllData();
+
+        if (success) {
+            this.showToast('All data wiped! Reloading...', 'success');
+            setTimeout(function() {
+                location.reload();
+            }, 2000);
+        } else {
+            this.showToast('Failed to wipe data!', 'error');
+        }
+    },
+
+    toggleMaintenance() {
+        if (this.isOnline) {
+            this.showToast('Maintenance mode not available in online mode yet', 'error');
+        } else {
+            const current = DB.isMaintenanceMode();
+            DB.setMaintenanceMode(!current);
+            this.showToast('Maintenance mode: ' + (!current ? 'ON' : 'OFF'), 'success');
         }
     },
 

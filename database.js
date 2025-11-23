@@ -159,7 +159,7 @@ const DB = {
                 gamesWon: 0
             },
             inventory: [],
-            avatar: `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=150&height=150&format=png`,
+            avatar: 'https://www.roblox.com/headshot-thumbnail/image?userId=' + robloxId + '&width=150&height=150&format=png',
             createdAt: new Date().toISOString()
         };
         this.data.users[username] = user;
@@ -167,14 +167,18 @@ const DB = {
         return user;
     },
 
-    addItemToUser(username, itemId, qty = 1) {
+    addItemToUser(username, itemId, qty) {
+        if (!qty) qty = 1;
         const user = this.data.users[username];
         const item = this.data.items[itemId];
         if (!user || !item) return false;
 
         for (let i = 0; i < qty; i++) {
             user.inventory.push({
-                ...item,
+                id: item.id,
+                name: item.name,
+                value: item.value,
+                icon: item.icon,
                 uniqueId: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
             });
         }
@@ -186,7 +190,9 @@ const DB = {
         const user = this.data.users[username];
         if (!user) return false;
 
-        user.inventory = user.inventory.filter(item => !uniqueIds.includes(item.uniqueId));
+        user.inventory = user.inventory.filter(function(item) {
+            return !uniqueIds.includes(item.uniqueId);
+        });
         this.save();
         return true;
     },
@@ -194,14 +200,18 @@ const DB = {
     getUserBalance(username) {
         const user = this.data.users[username];
         if (!user) return 0;
-        return user.inventory.reduce((sum, item) => sum + item.value, 0);
+        return user.inventory.reduce(function(sum, item) {
+            return sum + item.value;
+        }, 0);
     },
 
     createCoinflip(creatorUsername, items, side) {
         const creator = this.data.users[creatorUsername];
         if (!creator) return null;
 
-        const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+        const totalValue = items.reduce(function(sum, item) {
+            return sum + item.value;
+        }, 0);
 
         const coinflip = {
             id: 'cf_' + Date.now(),
@@ -218,18 +228,25 @@ const DB = {
             createdAt: new Date().toISOString()
         };
 
-        this.removeItemsFromUser(creatorUsername, items.map(i => i.uniqueId));
+        const uniqueIds = items.map(function(i) {
+            return i.uniqueId;
+        });
+        this.removeItemsFromUser(creatorUsername, uniqueIds);
         this.shared.coinflips.push(coinflip);
         this.saveShared();
         return coinflip;
     },
 
     getCoinflip(id) {
-        return this.shared.coinflips.find(cf => cf.id === id);
+        return this.shared.coinflips.find(function(cf) {
+            return cf.id === id;
+        });
     },
 
     getActiveCoinflips() {
-        return this.shared.coinflips.filter(cf => cf.status === 'waiting');
+        return this.shared.coinflips.filter(function(cf) {
+            return cf.status === 'waiting';
+        });
     },
 
     getAllCoinflips() {
@@ -247,7 +264,10 @@ const DB = {
         cf.opponentItems = items;
         cf.status = 'playing';
 
-        this.removeItemsFromUser(opponentUsername, items.map(i => i.uniqueId));
+        const uniqueIds = items.map(function(i) {
+            return i.uniqueId;
+        });
+        this.removeItemsFromUser(opponentUsername, uniqueIds);
         this.saveShared();
         return cf;
     },
@@ -264,10 +284,20 @@ const DB = {
         cf.status = 'finished';
         cf.finishedAt = new Date().toISOString();
 
-        const allItems = [...cf.creatorItems, ...cf.opponentItems];
+        // Copier les items pour les donner au gagnant
+        const allItems = [];
+        for (let i = 0; i < cf.creatorItems.length; i++) {
+            allItems.push(Object.assign({}, cf.creatorItems[i]));
+        }
+        for (let i = 0; i < cf.opponentItems.length; i++) {
+            allItems.push(Object.assign({}, cf.opponentItems[i]));
+        }
+
         const winnerUser = this.data.users[winner];
         if (winnerUser) {
-            winnerUser.inventory.push(...allItems);
+            for (let i = 0; i < allItems.length; i++) {
+                winnerUser.inventory.push(allItems[i]);
+            }
         }
 
         const totalPot = cf.totalValue * 2;
@@ -285,13 +315,20 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
-        // Ajouter à l'historique au lieu de supprimer
+        // Garder dans la liste des coinflips pour 30s
+        const self = this;
+        setTimeout(function() {
+            self.shared.coinflips = self.shared.coinflips.filter(function(c) {
+                return c.id !== coinflipId;
+            });
+            self.saveShared();
+        }, 30000);
+
         this.shared.coinflipsHistory.unshift(cf);
         if (this.shared.coinflipsHistory.length > 50) {
             this.shared.coinflipsHistory = this.shared.coinflipsHistory.slice(0, 50);
         }
 
-        this.shared.coinflips = this.shared.coinflips.filter(c => c.id !== coinflipId);
         this.save();
         this.saveShared();
         return cf;
@@ -303,19 +340,22 @@ const DB = {
             return null;
         }
 
-        // Rendre les items au créateur
         const creator = this.data.users[cf.creator];
         if (creator) {
-            creator.inventory.push(...cf.creatorItems);
+            creator.inventory = creator.inventory.concat(cf.creatorItems);
         }
 
-        this.shared.coinflips = this.shared.coinflips.filter(c => c.id !== coinflipId);
+        const self = this;
+        this.shared.coinflips = this.shared.coinflips.filter(function(c) {
+            return c.id !== coinflipId;
+        });
         this.save();
         this.saveShared();
         return true;
     },
 
-    getCoinflipsHistory(limit = 10) {
+    getCoinflipsHistory(limit) {
+        if (!limit) limit = 10;
         return this.shared.coinflipsHistory.slice(0, limit);
     },
 
@@ -325,19 +365,17 @@ const DB = {
 
         if (!fromUser || !toUser) return false;
 
-        const itemsToTip = fromUser.inventory.filter(item => 
-            itemUniqueIds.includes(item.uniqueId)
-        );
+        const itemsToTip = fromUser.inventory.filter(function(item) {
+            return itemUniqueIds.includes(item.uniqueId);
+        });
 
         if (itemsToTip.length === 0) return false;
 
-        // Retirer items de l'expéditeur
-        fromUser.inventory = fromUser.inventory.filter(item => 
-            !itemUniqueIds.includes(item.uniqueId)
-        );
+        fromUser.inventory = fromUser.inventory.filter(function(item) {
+            return !itemUniqueIds.includes(item.uniqueId);
+        });
 
-        // Ajouter items au destinataire
-        toUser.inventory.push(...itemsToTip);
+        toUser.inventory = toUser.inventory.concat(itemsToTip);
 
         this.save();
         return itemsToTip;
@@ -374,13 +412,18 @@ const DB = {
         return msg;
     },
 
-    getChatMessages(limit = 50) {
+    getChatMessages(limit) {
+        if (!limit) limit = 50;
         return this.shared.chat.slice(-limit);
     },
 
-    getLeaderboard(type = 'wagered', limit = 20) {
+    getLeaderboard(type, limit) {
+        if (!type) type = 'wagered';
+        if (!limit) limit = 20;
         return Object.values(this.data.users)
-            .sort((a, b) => (b.stats[type] || 0) - (a.stats[type] || 0))
+            .sort(function(a, b) {
+                return (b.stats[type] || 0) - (a.stats[type] || 0);
+            })
             .slice(0, limit);
     },
 
@@ -390,6 +433,62 @@ const DB = {
 
     getAllUsers() {
         return Object.values(this.data.users);
+    },
+
+    resetUserInventory(username) {
+        const user = this.data.users[username];
+        if (!user) return false;
+
+        user.inventory = [];
+        this.save();
+        return true;
+    },
+
+    isMaintenanceMode() {
+        return this.data.maintenance || false;
+    },
+
+    setMaintenanceMode(enabled) {
+        this.data.maintenance = enabled;
+        this.save();
+    },
+
+    filterBadWords(message) {
+        const badWords = ['nigga', 'nigger', 'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'porn', 'sex', 'rape', 'kill', 'suicide', 'nazi', 'hitler'];
+        let filtered = message.toLowerCase();
+        
+        for (let i = 0; i < badWords.length; i++) {
+            const word = badWords[i];
+            const regex = new RegExp(word, 'gi');
+            filtered = filtered.replace(regex, '***');
+        }
+        
+        return filtered;
+    },
+
+    wipeAllData() {
+        // Reset tous les inventaires et stats
+        const users = Object.keys(this.data.users);
+        for (let i = 0; i < users.length; i++) {
+            const username = users[i];
+            this.data.users[username].inventory = [];
+            this.data.users[username].stats = {
+                wagered: 0,
+                won: 0,
+                lost: 0,
+                gamesPlayed: 0,
+                gamesWon: 0
+            };
+        }
+
+        // Reset coinflips et history
+        this.shared.coinflips = [];
+        this.shared.coinflipsHistory = [];
+        this.shared.chat = [];
+
+        this.save();
+        this.saveShared();
+        return true;
     }
 };
 

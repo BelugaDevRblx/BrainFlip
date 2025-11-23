@@ -345,11 +345,24 @@ const SupaDB = {
             });
         }
 
-        // Supprimer le coinflip
+        // Update coinflip status
         await supabase
             .from('coinflips')
-            .delete()
+            .update({
+                status: 'finished',
+                winner: winner,
+                winner_side: winnerSide,
+                finished_at: new Date().toISOString()
+            })
             .eq('id', coinflipId);
+
+        // Supprimer après 30s
+        setTimeout(async () => {
+            await supabase
+                .from('coinflips')
+                .delete()
+                .eq('id', coinflipId);
+        }, 30000);
 
         return { ...cf, winner, winner_side: winnerSide };
     },
@@ -560,6 +573,75 @@ const SupaDB = {
         }
 
         return true;
+    },
+
+    async resetUserInventory(username) {
+        const { error } = await supabase
+            .from('users')
+            .update({ inventory: [] })
+            .eq('username', username);
+
+        if (error) {
+            console.error('Error resetting inventory:', error);
+            return false;
+        }
+
+        return true;
+    },
+
+    filterBadWords(message) {
+        const badWords = ['nigga', 'nigger', 'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'porn', 'sex', 'rape', 'kill', 'suicide', 'nazi', 'hitler'];
+        let filtered = message.toLowerCase();
+        
+        for (let i = 0; i < badWords.length; i++) {
+            const word = badWords[i];
+            const regex = new RegExp(word, 'gi');
+            filtered = filtered.replace(regex, '***');
+        }
+        
+        return filtered;
+    },
+
+    async wipeAllData() {
+        try {
+            // Reset tous les inventaires et stats
+            const { data: users, error: usersError } = await supabase
+                .from('users')
+                .select('username');
+
+            if (!usersError && users) {
+                for (let i = 0; i < users.length; i++) {
+                    await supabase
+                        .from('users')
+                        .update({
+                            inventory: [],
+                            stats_wagered: 0,
+                            stats_won: 0,
+                            stats_lost: 0,
+                            stats_games_played: 0,
+                            stats_games_won: 0
+                        })
+                        .eq('username', users[i].username);
+                }
+            }
+
+            // Supprimer tous les coinflips
+            await supabase
+                .from('coinflips')
+                .delete()
+                .neq('id', 'impossible_id');
+
+            // Supprimer tous les messages
+            await supabase
+                .from('chat_messages')
+                .delete()
+                .neq('id', 'impossible_id');
+
+            return true;
+        } catch (error) {
+            console.error('Wipe error:', error);
+            return false;
+        }
     }
 };
 
