@@ -167,7 +167,18 @@ const App = {
                 this.showToast('Invalid credentials!', 'error');
                 return;
             }
-            this.currentUser = user;
+            this.currentUser = {
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar,
+                level: user.level,
+                isAdmin: user.isAdmin,
+                discordLinked: user.discordLinked || false,
+                discordUsername: user.discordUsername || null,
+                badges: user.badges || [],
+                stats: user.stats,
+                inventory: user.inventory
+            };
         }
 
         localStorage.setItem('brainrotflip_current_user', username);
@@ -230,10 +241,19 @@ const App = {
                 return;
             }
             const robloxId = Math.floor(Math.random() * 9999999999);
-            const user = DB.createUser(username, robloxId);
-            user.email = email;
-            user.password = password;
-            this.currentUser = user;
+            const user = DB.createUser(username, robloxId, email, password);
+            this.currentUser = {
+                username: user.username,
+                email: user.email,
+                avatar: user.avatar,
+                level: user.level,
+                isAdmin: user.isAdmin,
+                discordLinked: user.discordLinked || false,
+                discordUsername: user.discordUsername || null,
+                badges: user.badges || [],
+                stats: user.stats,
+                inventory: user.inventory
+            };
         }
 
         localStorage.setItem('brainrotflip_current_user', username);

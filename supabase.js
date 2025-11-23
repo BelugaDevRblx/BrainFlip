@@ -34,6 +34,73 @@ const SupaDB = {
         }
     },
 
+    async registerUser(username, email, password) {
+        try {
+            // Vérifier si l'utilisateur existe déjà
+            const existing = await this.getUser(username);
+            if (existing) {
+                return { success: false, error: 'Username already exists' };
+            }
+
+            const robloxId = Math.floor(Math.random() * 9999999999);
+            
+            const newUser = {
+                username: username,
+                email: email,
+                password: password,
+                roblox_id: robloxId,
+                avatar: `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=150&height=150&format=png`,
+                level: 1,
+                discord_linked: false,
+                discord_username: null,
+                badges: [],
+                stats_wagered: 0,
+                stats_won: 0,
+                stats_lost: 0,
+                stats_games_played: 0,
+                stats_games_won: 0,
+                is_admin: username === 'DimaWarm_BlueHive',
+                inventory: [],
+                created_at: new Date().toISOString()
+            };
+
+            const { data, error } = await supabase
+                .from('users')
+                .insert([newUser])
+                .select()
+                .single();
+
+            if (error) {
+                console.error('Error registering user:', error);
+                return { success: false, error: 'Failed to create account' };
+            }
+
+            return { success: true, user: data };
+        } catch (error) {
+            console.error('Register error:', error);
+            return { success: false, error: 'Registration failed' };
+        }
+    },
+
+    async loginUser(username, password) {
+        try {
+            const user = await this.getUser(username);
+            
+            if (!user) {
+                return { success: false, error: 'User not found' };
+            }
+
+            if (user.password !== password) {
+                return { success: false, error: 'Invalid password' };
+            }
+
+            return { success: true, user: user };
+        } catch (error) {
+            console.error('Login error:', error);
+            return { success: false, error: 'Login failed' };
+        }
+    },
+
     async createOrGetUser(username, robloxId, avatar) {
         // Vérifier si l'utilisateur existe
         const { data: existingUser, error: fetchError } = await supabase
