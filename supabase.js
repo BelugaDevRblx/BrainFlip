@@ -262,6 +262,21 @@ const SupaDB = {
         return data || [];
     },
 
+    async getAllActiveCoinflips() {
+        const { data, error } = await supabase
+            .from('coinflips')
+            .select('*')
+            .in('status', ['waiting', 'playing'])
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Error fetching all coinflips:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
     async getCoinflip(id) {
         const { data, error } = await supabase
             .from('coinflips')

@@ -603,9 +603,9 @@ const App = {
     async loadCoinflips() {
         let coinflips = [];
         if (this.isOnline) {
-            coinflips = await SupaDB.getActiveCoinflips();
+            coinflips = await SupaDB.getAllActiveCoinflips();
         } else {
-            coinflips = DB.getAllCoinflips();
+            coinflips = DB.getAllActiveCoinflips();
         }
             
         const container = document.getElementById('coinflipList');

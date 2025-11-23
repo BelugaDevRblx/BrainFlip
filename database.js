@@ -249,6 +249,10 @@ const DB = {
         });
     },
 
+    getAllActiveCoinflips() {
+        return this.shared.coinflips;
+    },
+
     getAllCoinflips() {
         return this.shared.coinflips;
     },
