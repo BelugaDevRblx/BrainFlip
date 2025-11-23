@@ -586,6 +586,12 @@ const SupaDB = {
             return false;
         }
 
+        // Supprimer les coinflips de cet user
+        await supabase
+            .from('coinflips')
+            .delete()
+            .or('creator.eq.' + username + ',opponent.eq.' + username);
+
         return true;
     },
 

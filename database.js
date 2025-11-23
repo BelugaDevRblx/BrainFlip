@@ -466,6 +466,23 @@ const DB = {
         return filtered;
     },
 
+    resetUserInventory(username) {
+        const user = this.data.users[username];
+        if (!user) return false;
+
+        user.inventory = [];
+        
+        // Supprimer les coinflips de cet user
+        const self = this;
+        this.shared.coinflips = this.shared.coinflips.filter(function(cf) {
+            return cf.creator !== username && cf.opponent !== username;
+        });
+
+        this.save();
+        this.saveShared();
+        return true;
+    },
+
     wipeAllData() {
         // Reset tous les inventaires et stats
         const users = Object.keys(this.data.users);
@@ -481,7 +498,7 @@ const DB = {
             };
         }
 
-        // Reset coinflips et history
+        // Reset coinflips, history et chat
         this.shared.coinflips = [];
         this.shared.coinflipsHistory = [];
         this.shared.chat = [];
