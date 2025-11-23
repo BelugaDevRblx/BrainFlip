@@ -3,7 +3,14 @@ const SUPABASE_URL = 'https://woudapshwmdrogvbxviw.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_cBIEzbOnw-oMNxQkqFgJXA_-jgAR3Y8';
 
 // Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+    db: {
+        schema: 'public'
+    },
+    auth: {
+        persistSession: false
+    }
+});
 
 const SupaDB = {
     // USER MANAGEMENT
@@ -33,7 +40,7 @@ const SupaDB = {
             .from('users')
             .select('*')
             .eq('username', username)
-            .single();
+            .maybeSingle();
 
         if (existingUser) {
             return existingUser;
@@ -74,7 +81,7 @@ const SupaDB = {
             .from('users')
             .select('*')
             .eq('username', username)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.error('Error fetching user:', error);
