@@ -422,11 +422,20 @@ const App = {
             '<div class="actions-row">' +
             '<button class="action-btn create" onclick="App.openCreateModal()">Create Coinflip</button>' +
             '</div>' +
+            '<div class="modal-tabs" style="margin-bottom:2rem;">' +
+            '<div class="modal-tab active" onclick="App.switchCoinflipTab(\'active\', this)">Active Games</div>' +
+            '<div class="modal-tab" onclick="App.switchCoinflipTab(\'history\', this)">History</div>' +
+            '</div>' +
+            '<div id="activeGamesSection">' +
             '<div class="filters-row">' +
             '<div class="filter-group"><img src="Head_Tile.png" style="width:24px;height:24px;"><span id="filterHeadsCount">0</span> Heads</div>' +
             '<div class="filter-group"><img src="Tails_Tile.png" style="width:24px;height:24px;"><span id="filterTailsCount">0</span> Tails</div>' +
             '</div>' +
             '<div class="coinflip-list" id="coinflipList"></div>' +
+            '</div>' +
+            '<div id="historySection" style="display:none;">' +
+            '<div class="coinflip-list" id="coinflipHistory"></div>' +
+            '</div>' +
             '</div>';
     },
 
@@ -466,6 +475,17 @@ const App = {
     getSettingsHTML() {
         return '<div class="page active">' +
             '<h1 class="page-title">⚙️ Settings</h1>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">🖼️ Change Avatar</h3>' +
+            '<div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;">' +
+            '<img src="' + this.currentUser.avatar + '" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent-purple);">' +
+            '<div style="flex:1;">' +
+            '<input type="text" class="modal-input" id="avatarUrlInput" placeholder="Enter image URL" value="' + this.currentUser.avatar + '">' +
+            '<p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.5rem;">Use a direct image link (PNG, JPG, GIF)</p>' +
+            '</div>' +
+            '</div>' +
+            '<button class="modal-btn" onclick="App.changeAvatar()">Update Avatar</button>' +
+            '</div>' +
             '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
             '<h3 style="margin-bottom:1.5rem;">🔗 Link Discord Account</h3>' +
             (this.currentUser.discordLinked ? 
@@ -652,7 +672,10 @@ const App = {
                     '<button class="join-btn" onclick="App.openJoinModal(\'' + cfId + '\')">Join</button>' +
                     '</div>';
             } else {
-                html += '<button class="join-btn" style="background:var(--bg-tertiary);color:var(--text-primary);" onclick="App.viewCoinflip(\'' + cfId + '\')">View</button>';
+                html += '<div style="display:flex;gap:0.5rem;">' +
+                    '<button class="join-btn" style="background:var(--bg-tertiary);color:var(--text-primary);" onclick="App.viewCoinflip(\'' + cfId + '\')">View</button>' +
+                    '<button class="join-btn" style="background:var(--accent-red);" onclick="App.cancelCoinflip(\'' + cfId + '\')">Cancel</button>' +
+                    '</div>';
             }
             
             html += '</div>';
@@ -1112,23 +1135,6 @@ const App = {
         if (onlineCount) onlineCount.textContent = Math.floor(Math.random() * 100) + 20;
     },
 
-    async sendChatMessage() {
-        const input = document.getElementById('chatInput');
-        if (!input) return;
-
-        const msg = input.value.trim();
-        if (!msg) return;
-
-        if (this.isOnline) {
-            await SupaDB.sendChatMessage(this.currentUser.username, msg);
-        } else {
-            DB.addChatMessage(this.currentUser.username, msg);
-        }
-        
-        input.value = '';
-        this.loadChat();
-    },
-
     formatTime(ts) {
         const date = new Date(ts);
         const hours = date.getHours().toString().padStart(2, '0');
@@ -1349,6 +1355,251 @@ const App = {
             '</div>';
             
         document.body.appendChild(modal);
+    },
+
+    switchCoinflipTab(tab, el) {
+        document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        
+        if (tab === 'active') {
+            document.getElementById('activeGamesSection').style.display = 'block';
+            document.getElementById('historySection').style.display = 'none';
+            this.loadCoinflips();
+        } else {
+            document.getElementById('activeGamesSection').style.display = 'none';
+            document.getElementById('historySection').style.display = 'block';
+            this.loadCoinflipsHistory();
+        }
+    },
+
+    async loadCoinflipsHistory() {
+        const history = this.isOnline
+            ? await SupaDB.getCoinflipsHistory(20)
+            : DB.getCoinflipsHistory(20);
+            
+        const container = document.getElementById('coinflipHistory');
+        if (!container) return;
+
+        if (history.length === 0) {
+            container.innerHTML = '<div class="no-games-message"><div class="icon">📜</div><p>No history yet</p></div>';
+            return;
+        }
+
+        let html = '';
+        for (let i = 0; i < history.length; i++) {
+            const cf = history[i];
+            const creator = this.isOnline ? cf.creator : cf.creator;
+            const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
+            const opponent = this.isOnline ? cf.opponent : cf.opponent;
+            const opponentAvatar = this.isOnline ? cf.opponent_avatar : cf.opponentAvatar;
+            const winner = this.isOnline ? cf.winner : cf.winner;
+            const winnerSide = this.isOnline ? cf.winner_side : cf.winnerSide;
+            const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
+
+            const winnerSideImg = winnerSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
+            
+            html += '<div class="coinflip-card" style="opacity:0.85;">' +
+                '<div class="cf-players">' +
+                '<div class="cf-player' + (winner === creator ? ' winner-glow' : '') + '">' +
+                '<img class="cf-player-avatar" src="' + creatorAvatar + '">' +
+                '<div class="cf-player-info">' +
+                '<div class="name ' + (winner === creator ? 'purple' : 'waiting') + '">' + creator + (winner === creator ? ' 🏆' : '') + '</div>' +
+                '</div>' +
+                '</div>' +
+                '<img src="' + winnerSideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--accent-green);">' +
+                '<div class="vs-badge">VS</div>' +
+                '<div class="cf-player' + (winner === opponent ? ' winner-glow' : '') + '">' +
+                '<img class="cf-player-avatar" src="' + opponentAvatar + '">' +
+                '<div class="cf-player-info">' +
+                '<div class="name ' + (winner === opponent ? 'orange' : 'waiting') + '">' + opponent + (winner === opponent ? ' 🏆' : '') + '</div>' +
+                '</div>' +
+                '</div>' +
+                '</div>' +
+                '<div class="cf-value">' +
+                '<div class="amount">' + this.formatNumber(totalValue * 2) + ' 💎</div>' +
+                '<div class="label">Total Pot</div>' +
+                '</div>' +
+                '</div>';
+        }
+        
+        container.innerHTML = html;
+    },
+
+    async cancelCoinflip(coinflipId) {
+        if (!confirm('Cancel this coinflip? Your items will be returned.')) return;
+
+        const success = this.isOnline
+            ? await SupaDB.cancelCoinflip(coinflipId, this.currentUser.username)
+            : DB.cancelCoinflip(coinflipId, this.currentUser.username);
+
+        if (success) {
+            this.showToast('Coinflip cancelled!', 'success');
+            this.loadCoinflips();
+            
+            if (this.isOnline) {
+                const user = await SupaDB.getUser(this.currentUser.username);
+                this.currentUser.inventory = user.inventory || [];
+            } else {
+                this.currentUser = DB.getUser(this.currentUser.username);
+            }
+            
+            this.updateUI();
+        } else {
+            this.showToast('Failed to cancel!', 'error');
+        }
+    },
+
+    async sendChatMessage() {
+        const input = document.getElementById('chatInput');
+        if (!input) return;
+
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        // Vérifier si c'est une commande /tip
+        if (msg.startsWith('/tip ')) {
+            const parts = msg.split(' ');
+            if (parts.length >= 2) {
+                const targetUser = parts[1];
+                this.openTipModal(targetUser);
+                input.value = '';
+                return;
+            }
+        }
+
+        if (this.isOnline) {
+            await SupaDB.sendChatMessage(this.currentUser.username, msg);
+        } else {
+            DB.addChatMessage(this.currentUser.username, msg);
+        }
+        
+        input.value = '';
+        this.loadChat();
+    },
+
+    openTipModal(targetUsername) {
+        if (targetUsername === this.currentUser.username) {
+            this.showToast('You cannot tip yourself!', 'error');
+            return;
+        }
+
+        this.selectedTipItems = [];
+        
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'tipModal';
+        
+        let itemsHtml = '';
+        if (this.currentUser.inventory.length === 0) {
+            itemsHtml = '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items to tip</p>';
+        } else {
+            for (let i = 0; i < this.currentUser.inventory.length; i++) {
+                const item = this.currentUser.inventory[i];
+                itemsHtml += '<div class="item-card" data-id="' + item.uniqueId + '" onclick="App.toggleTipItem(this)">' +
+                    '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
+                    '<div class="name">' + item.name + '</div>' +
+                    '<div class="value">' + item.value + ' 💎</div>' +
+                    '</div>';
+            }
+        }
+        
+        modal.innerHTML = '<div class="modal wide">' +
+            '<div class="modal-header">' +
+            '<h2>💝 Tip to ' + targetUsername + '</h2>' +
+            '<button class="modal-close" onclick="App.closeModal(\'tipModal\')">×</button>' +
+            '</div>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Select items to send:</p>' +
+            '<div class="items-grid" id="tipItemsGrid">' + itemsHtml + '</div>' +
+            '<div class="selected-summary">' +
+            '<span class="label">Total Value:</span>' +
+            '<span class="total" id="tipTotal">0 💎</span>' +
+            '</div>' +
+            '<button class="modal-btn success" onclick="App.confirmTip(\'' + targetUsername + '\')">Send Tip</button>' +
+            '</div>';
+            
+        document.body.appendChild(modal);
+    },
+
+    toggleTipItem(el) {
+        const uniqueId = el.dataset.id;
+        if (!this.selectedTipItems) this.selectedTipItems = [];
+        
+        if (el.classList.contains('selected')) {
+            el.classList.remove('selected');
+            this.selectedTipItems = this.selectedTipItems.filter(id => id !== uniqueId);
+        } else {
+            el.classList.add('selected');
+            this.selectedTipItems.push(uniqueId);
+        }
+
+        let total = 0;
+        for (let i = 0; i < this.selectedTipItems.length; i++) {
+            const item = this.currentUser.inventory.find(it => it.uniqueId === this.selectedTipItems[i]);
+            if (item) total += item.value;
+        }
+        
+        const totalEl = document.getElementById('tipTotal');
+        if (totalEl) totalEl.textContent = this.formatNumber(total) + ' 💎';
+    },
+
+    async confirmTip(targetUsername) {
+        if (!this.selectedTipItems || this.selectedTipItems.length === 0) {
+            this.showToast('Select items to tip!', 'error');
+            return;
+        }
+
+        const items = this.isOnline
+            ? await SupaDB.tipUser(this.currentUser.username, targetUsername, this.selectedTipItems)
+            : DB.tipUser(this.currentUser.username, targetUsername, this.selectedTipItems);
+
+        if (items) {
+            const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+            this.showToast('Sent ' + this.formatNumber(totalValue) + ' 💎 to ' + targetUsername + '!', 'success');
+            this.closeModal('tipModal');
+            
+            if (this.isOnline) {
+                const user = await SupaDB.getUser(this.currentUser.username);
+                this.currentUser.inventory = user.inventory || [];
+            } else {
+                this.currentUser = DB.getUser(this.currentUser.username);
+            }
+            
+            this.updateUI();
+        } else {
+            this.showToast('Failed to send tip!', 'error');
+        }
+    },
+
+    async changeAvatar() {
+        const input = document.getElementById('avatarUrlInput');
+        if (!input) return;
+
+        const newAvatar = input.value.trim();
+        if (!newAvatar) {
+            this.showToast('Enter an image URL!', 'error');
+            return;
+        }
+
+        // Vérifier si c'est une URL valide
+        if (!newAvatar.startsWith('http://') && !newAvatar.startsWith('https://')) {
+            this.showToast('Enter a valid URL!', 'error');
+            return;
+        }
+
+        const success = this.isOnline
+            ? await SupaDB.updateUserAvatar(this.currentUser.username, newAvatar)
+            : DB.updateUserAvatar(this.currentUser.username, newAvatar);
+
+        if (success) {
+            this.currentUser.avatar = newAvatar;
+            this.showToast('Avatar updated!', 'success');
+            this.updateUI();
+            
+            // Rafraîchir la page settings
+            this.navigateTo('settings');
+        } else {
+            this.showToast('Failed to update avatar!', 'error');
+        }
     },
 
     logout() {

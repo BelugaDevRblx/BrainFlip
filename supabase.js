@@ -473,6 +473,93 @@ const SupaDB = {
         }
 
         return data || [];
+    },
+
+    async cancelCoinflip(coinflipId, username) {
+        const cf = await this.getCoinflip(coinflipId);
+        if (!cf || cf.status !== 'waiting' || cf.creator !== username) {
+            return null;
+        }
+
+        // Rendre les items au créateur
+        const creator = await this.getUser(cf.creator);
+        if (creator) {
+            const newInventory = [...(creator.inventory || []), ...cf.creator_items];
+            await supabase
+                .from('users')
+                .update({ inventory: newInventory })
+                .eq('username', cf.creator);
+        }
+
+        await supabase
+            .from('coinflips')
+            .delete()
+            .eq('id', coinflipId);
+
+        return true;
+    },
+
+    async getCoinflipsHistory(limit = 10) {
+        const { data, error } = await supabase
+            .from('coinflips')
+            .select('*')
+            .eq('status', 'finished')
+            .order('finished_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error('Error fetching history:', error);
+            return [];
+        }
+
+        return data || [];
+    },
+
+    async tipUser(fromUsername, toUsername, itemUniqueIds) {
+        const fromUser = await this.getUser(fromUsername);
+        const toUser = await this.getUser(toUsername);
+
+        if (!fromUser || !toUser) return false;
+
+        const itemsToTip = fromUser.inventory.filter(item => 
+            itemUniqueIds.includes(item.uniqueId)
+        );
+
+        if (itemsToTip.length === 0) return false;
+
+        // Retirer items de l'expéditeur
+        const newFromInventory = fromUser.inventory.filter(item => 
+            !itemUniqueIds.includes(item.uniqueId)
+        );
+
+        // Ajouter items au destinataire
+        const newToInventory = [...(toUser.inventory || []), ...itemsToTip];
+
+        await supabase
+            .from('users')
+            .update({ inventory: newFromInventory })
+            .eq('username', fromUsername);
+
+        await supabase
+            .from('users')
+            .update({ inventory: newToInventory })
+            .eq('username', toUsername);
+
+        return itemsToTip;
+    },
+
+    async updateUserAvatar(username, avatarUrl) {
+        const { error } = await supabase
+            .from('users')
+            .update({ avatar: avatarUrl })
+            .eq('username', username);
+
+        if (error) {
+            console.error('Error updating avatar:', error);
+            return false;
+        }
+
+        return true;
     }
 };
 

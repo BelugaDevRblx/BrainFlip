@@ -18,6 +18,7 @@ const DB = {
         } else {
             this.shared = {
                 coinflips: [],
+                coinflipsHistory: [],
                 chat: []
             };
             this.saveShared();
@@ -284,10 +285,71 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
+        // Ajouter à l'historique au lieu de supprimer
+        this.shared.coinflipsHistory.unshift(cf);
+        if (this.shared.coinflipsHistory.length > 50) {
+            this.shared.coinflipsHistory = this.shared.coinflipsHistory.slice(0, 50);
+        }
+
         this.shared.coinflips = this.shared.coinflips.filter(c => c.id !== coinflipId);
         this.save();
         this.saveShared();
         return cf;
+    },
+
+    cancelCoinflip(coinflipId, username) {
+        const cf = this.getCoinflip(coinflipId);
+        if (!cf || cf.status !== 'waiting' || cf.creator !== username) {
+            return null;
+        }
+
+        // Rendre les items au créateur
+        const creator = this.data.users[cf.creator];
+        if (creator) {
+            creator.inventory.push(...cf.creatorItems);
+        }
+
+        this.shared.coinflips = this.shared.coinflips.filter(c => c.id !== coinflipId);
+        this.save();
+        this.saveShared();
+        return true;
+    },
+
+    getCoinflipsHistory(limit = 10) {
+        return this.shared.coinflipsHistory.slice(0, limit);
+    },
+
+    tipUser(fromUsername, toUsername, itemUniqueIds) {
+        const fromUser = this.data.users[fromUsername];
+        const toUser = this.data.users[toUsername];
+
+        if (!fromUser || !toUser) return false;
+
+        const itemsToTip = fromUser.inventory.filter(item => 
+            itemUniqueIds.includes(item.uniqueId)
+        );
+
+        if (itemsToTip.length === 0) return false;
+
+        // Retirer items de l'expéditeur
+        fromUser.inventory = fromUser.inventory.filter(item => 
+            !itemUniqueIds.includes(item.uniqueId)
+        );
+
+        // Ajouter items au destinataire
+        toUser.inventory.push(...itemsToTip);
+
+        this.save();
+        return itemsToTip;
+    },
+
+    updateUserAvatar(username, avatarUrl) {
+        const user = this.data.users[username];
+        if (!user) return false;
+
+        user.avatar = avatarUrl;
+        this.save();
+        return true;
     },
 
     addChatMessage(username, message) {
