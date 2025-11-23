@@ -1430,6 +1430,18 @@ const App = {
             return;
         }
 
+        const status = this.isOnline ? cf.status : cf.status;
+        
+        if (status === 'playing') {
+            // Si le coinflip est en cours, montrer l'animation
+            this.startCoinflipAnimation(cf);
+        } else {
+            // Sinon montrer les détails
+            this.showCoinflipDetails(cf);
+        }
+    },
+
+    showCoinflipDetails(cf) {
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
         const creatorSide = this.isOnline ? cf.creator_side : cf.creatorSide;

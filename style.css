@@ -1825,3 +1825,202 @@ body {
     font-weight: 700;
     font-size: 0.85rem;
 }
+
+/* ===== RESPONSIVE DESIGN ===== */
+
+/* Tablettes (portrait) */
+@media (max-width: 1024px) {
+    .app-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .sidebar {
+        display: none;
+    }
+    
+    .main-content {
+        margin-left: 0;
+    }
+    
+    .bloxyx-modal {
+        max-width: 90vw !important;
+    }
+    
+    .bloxyx-items-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+    .header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .logo {
+        font-size: 1.2rem;
+    }
+    
+    .user-info {
+        font-size: 0.85rem;
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .modal {
+        max-width: 95vw !important;
+        padding: 1rem !important;
+        margin: 0.5rem;
+    }
+    
+    .bloxyx-modal {
+        max-width: 95vw !important;
+        padding: 0 !important;
+    }
+    
+    .bloxyx-players-section {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 1rem;
+    }
+    
+    .bloxyx-avatar {
+        width: 80px !important;
+        height: 80px !important;
+    }
+    
+    .bloxyx-coin-video {
+        width: 120px !important;
+        height: 120px !important;
+    }
+    
+    .bloxyx-items-column {
+        padding: 1rem;
+    }
+    
+    .bloxyx-items-list {
+        max-height: 150px;
+    }
+    
+    .coinflip-card,
+    .coinflip-card-bloxyx {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .cf-players {
+        flex-direction: column;
+        gap: 1rem;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+    
+    .inventory-grid {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    }
+    
+    .item-card {
+        padding: 0.75rem;
+    }
+    
+    .chat-container {
+        display: none;
+    }
+}
+
+/* Petits mobiles */
+@media (max-width: 480px) {
+    .header {
+        padding: 0.5rem;
+    }
+    
+    .logo {
+        font-size: 1rem;
+    }
+    
+    .user-info span {
+        display: none;
+    }
+    
+    .bloxyx-header {
+        font-size: 1.2rem;
+        padding: 1rem;
+    }
+    
+    .bloxyx-username {
+        font-size: 0.9rem;
+    }
+    
+    .bloxyx-total {
+        font-size: 1rem;
+    }
+    
+    .bloxyx-item {
+        padding: 0.5rem;
+    }
+    
+    .bloxyx-item img {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .item-name {
+        font-size: 0.8rem;
+    }
+    
+    .modal-header h2 {
+        font-size: 1.2rem;
+    }
+    
+    .inventory-grid {
+        grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    }
+}
+
+/* Orientation paysage mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+    .bloxyx-modal {
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+    
+    .bloxyx-players-section {
+        flex-direction: row;
+        padding: 0.5rem;
+    }
+    
+    .bloxyx-avatar {
+        width: 60px !important;
+        height: 60px !important;
+    }
+    
+    .bloxyx-coin-video {
+        width: 100px !important;
+        height: 100px !important;
+    }
+    
+    .bloxyx-items-list {
+        max-height: 100px;
+    }
+}
+
+/* Desktop large */
+@media (min-width: 1920px) {
+    .container {
+        max-width: 1800px;
+    }
+    
+    .bloxyx-modal {
+        max-width: 1000px !important;
+    }
+}
