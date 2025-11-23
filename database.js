@@ -40,96 +40,21 @@ const DB = {
         return {
             users: {},
             items: {
-                skibidi_toilet: {
-                    id: "skibidi_toilet",
-                    name: "Skibidi Toilet",
-                    value: 100,
-                    icon: "Item_Assets/skibidi_toilet.png"
-                },
-                cameraman: {
-                    id: "cameraman",
-                    name: "Cameraman",
-                    value: 250,
-                    icon: "Item_Assets/cameraman.png"
-                },
-                tv_man: {
-                    id: "tv_man",
-                    name: "TV Man",
-                    value: 500,
-                    icon: "Item_Assets/tv_man.png"
-                },
-                speakerman: {
-                    id: "speakerman",
-                    name: "Speakerman",
-                    value: 750,
-                    icon: "Item_Assets/speakerman.png"
-                },
-                gman: {
-                    id: "gman",
-                    name: "G-Man",
-                    value: 1000,
-                    icon: "Item_Assets/gman.png"
-                },
-                titan_cameraman: {
-                    id: "titan_cameraman",
-                    name: "Titan Cameraman",
-                    value: 2500,
-                    icon: "Item_Assets/titan_cameraman.png"
-                },
-                titan_speakerman: {
-                    id: "titan_speakerman",
-                    name: "Titan Speakerman",
-                    value: 2500,
-                    icon: "Item_Assets/titan_speakerman.png"
-                },
-                titan_tvman: {
-                    id: "titan_tvman",
-                    name: "Titan TV Man",
-                    value: 3000,
-                    icon: "Item_Assets/titan_tvman.png"
-                },
-                chill_guy: {
-                    id: "chill_guy",
-                    name: "Chill Guy",
-                    value: 150,
-                    icon: "Item_Assets/chill_guy.png"
-                },
-                sigma: {
-                    id: "sigma",
-                    name: "Sigma",
-                    value: 300,
-                    icon: "Item_Assets/sigma.png"
-                },
-                ohio_boss: {
-                    id: "ohio_boss",
-                    name: "Ohio Boss",
-                    value: 10000,
-                    icon: "Item_Assets/ohio_boss.png"
-                },
-                rizz_god: {
-                    id: "rizz_god",
-                    name: "Rizz God",
-                    value: 7500,
-                    icon: "Item_Assets/rizz_god.png"
-                },
-                gyatt: {
-                    id: "gyatt",
-                    name: "Gyatt",
-                    value: 200,
-                    icon: "Item_Assets/gyatt.png"
-                },
-                kai_cenat: {
-                    id: "kai_cenat",
-                    name: "Kai Cenat",
-                    value: 5000,
-                    icon: "Item_Assets/kai_cenat.png"
-                },
-                ishowspeed: {
-                    id: "ishowspeed",
-                    name: "IShowSpeed",
-                    value: 6000,
-                    icon: "Item_Assets/ishowspeed.png"
-                }
+                skibidi_toilet: { id: "skibidi_toilet", name: "Skibidi Toilet", value: 100, icon: "Item_Assets/skibidi_toilet.png" },
+                cameraman: { id: "cameraman", name: "Cameraman", value: 250, icon: "Item_Assets/cameraman.png" },
+                tv_man: { id: "tv_man", name: "TV Man", value: 500, icon: "Item_Assets/tv_man.png" },
+                speakerman: { id: "speakerman", name: "Speakerman", value: 750, icon: "Item_Assets/speakerman.png" },
+                gman: { id: "gman", name: "G-Man", value: 1000, icon: "Item_Assets/gman.png" },
+                titan_cameraman: { id: "titan_cameraman", name: "Titan Cameraman", value: 2500, icon: "Item_Assets/titan_cameraman.png" },
+                titan_speakerman: { id: "titan_speakerman", name: "Titan Speakerman", value: 2500, icon: "Item_Assets/titan_speakerman.png" },
+                titan_tvman: { id: "titan_tvman", name: "Titan TV Man", value: 3000, icon: "Item_Assets/titan_tvman.png" },
+                chill_guy: { id: "chill_guy", name: "Chill Guy", value: 150, icon: "Item_Assets/chill_guy.png" },
+                sigma: { id: "sigma", name: "Sigma", value: 300, icon: "Item_Assets/sigma.png" },
+                ohio_boss: { id: "ohio_boss", name: "Ohio Boss", value: 10000, icon: "Item_Assets/ohio_boss.png" },
+                rizz_god: { id: "rizz_god", name: "Rizz God", value: 7500, icon: "Item_Assets/rizz_god.png" },
+                gyatt: { id: "gyatt", name: "Gyatt", value: 200, icon: "Item_Assets/gyatt.png" },
+                kai_cenat: { id: "kai_cenat", name: "Kai Cenat", value: 5000, icon: "Item_Assets/kai_cenat.png" },
+                ishowspeed: { id: "ishowspeed", name: "IShowSpeed", value: 6000, icon: "Item_Assets/ishowspeed.png" }
             }
         };
     },
@@ -138,11 +63,10 @@ const DB = {
         return this.data.users[username] || null;
     },
 
-    createUser(username, robloxId, email, password) {
+    createUser(username, robloxId, password) {
         const user = {
             id: 'usr_' + Date.now(),
             username: username,
-            email: email,
             password: password,
             robloxId: robloxId,
             verified: true,
@@ -151,13 +75,7 @@ const DB = {
             discordLinked: false,
             discordUsername: null,
             badges: [],
-            stats: {
-                wagered: 0,
-                won: 0,
-                lost: 0,
-                gamesPlayed: 0,
-                gamesWon: 0
-            },
+            stats: { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 },
             inventory: [],
             avatar: 'https://www.roblox.com/headshot-thumbnail/image?userId=' + robloxId + '&width=150&height=150&format=png',
             createdAt: new Date().toISOString()
@@ -189,7 +107,6 @@ const DB = {
     removeItemsFromUser(username, uniqueIds) {
         const user = this.data.users[username];
         if (!user) return false;
-
         user.inventory = user.inventory.filter(function(item) {
             return !uniqueIds.includes(item.uniqueId);
         });
@@ -200,19 +117,14 @@ const DB = {
     getUserBalance(username) {
         const user = this.data.users[username];
         if (!user) return 0;
-        return user.inventory.reduce(function(sum, item) {
-            return sum + item.value;
-        }, 0);
+        return user.inventory.reduce(function(sum, item) { return sum + item.value; }, 0);
     },
 
     createCoinflip(creatorUsername, items, side) {
         const creator = this.data.users[creatorUsername];
         if (!creator) return null;
 
-        const totalValue = items.reduce(function(sum, item) {
-            return sum + item.value;
-        }, 0);
-
+        const totalValue = items.reduce(function(sum, item) { return sum + item.value; }, 0);
         const coinflip = {
             id: 'cf_' + Date.now(),
             creator: creatorUsername,
@@ -224,13 +136,10 @@ const DB = {
             opponentItems: [],
             totalValue: totalValue,
             status: 'waiting',
-            winner: null,
             createdAt: new Date().toISOString()
         };
 
-        const uniqueIds = items.map(function(i) {
-            return i.uniqueId;
-        });
+        const uniqueIds = items.map(function(i) { return i.uniqueId; });
         this.removeItemsFromUser(creatorUsername, uniqueIds);
         this.shared.coinflips.push(coinflip);
         this.saveShared();
@@ -238,15 +147,11 @@ const DB = {
     },
 
     getCoinflip(id) {
-        return this.shared.coinflips.find(function(cf) {
-            return cf.id === id;
-        });
+        return this.shared.coinflips.find(function(cf) { return cf.id === id; });
     },
 
     getActiveCoinflips() {
-        return this.shared.coinflips.filter(function(cf) {
-            return cf.status === 'waiting';
-        });
+        return this.shared.coinflips.filter(function(cf) { return cf.status === 'waiting'; });
     },
 
     getAllActiveCoinflips() {
@@ -260,7 +165,6 @@ const DB = {
     joinCoinflip(coinflipId, opponentUsername, items) {
         const cf = this.getCoinflip(coinflipId);
         const opponent = this.data.users[opponentUsername];
-
         if (!cf || !opponent || cf.status !== 'waiting') return null;
 
         cf.opponent = opponentUsername;
@@ -268,9 +172,7 @@ const DB = {
         cf.opponentItems = items;
         cf.status = 'playing';
 
-        const uniqueIds = items.map(function(i) {
-            return i.uniqueId;
-        });
+        const uniqueIds = items.map(function(i) { return i.uniqueId; });
         this.removeItemsFromUser(opponentUsername, uniqueIds);
         this.saveShared();
         return cf;
@@ -283,7 +185,7 @@ const DB = {
         const winner = winnerSide === cf.creatorSide ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
 
-        // Copier les items pour les donner au gagnant
+        // Donner items au gagnant
         const allItems = [];
         for (let i = 0; i < cf.creatorItems.length; i++) {
             allItems.push(Object.assign({}, cf.creatorItems[i]));
@@ -314,14 +216,10 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
-        // Supprimer le coinflip après 30s
-        const self = this;
-        setTimeout(function() {
-            self.shared.coinflips = self.shared.coinflips.filter(function(c) {
-                return c.id !== coinflipId;
-            });
-            self.saveShared();
-        }, 30000);
+        // SUPPRIMER IMMÉDIATEMENT
+        this.shared.coinflips = this.shared.coinflips.filter(function(c) {
+            return c.id !== coinflipId;
+        });
 
         this.shared.coinflipsHistory.unshift(cf);
         if (this.shared.coinflipsHistory.length > 50) {
@@ -336,16 +234,13 @@ const DB = {
 
     cancelCoinflip(coinflipId, username) {
         const cf = this.getCoinflip(coinflipId);
-        if (!cf || cf.status !== 'waiting' || cf.creator !== username) {
-            return null;
-        }
+        if (!cf || cf.status !== 'waiting' || cf.creator !== username) return null;
 
         const creator = this.data.users[cf.creator];
         if (creator) {
             creator.inventory = creator.inventory.concat(cf.creatorItems);
         }
 
-        const self = this;
         this.shared.coinflips = this.shared.coinflips.filter(function(c) {
             return c.id !== coinflipId;
         });
@@ -362,19 +257,16 @@ const DB = {
     tipUser(fromUsername, toUsername, itemUniqueIds) {
         const fromUser = this.data.users[fromUsername];
         const toUser = this.data.users[toUsername];
-
         if (!fromUser || !toUser) return false;
 
         const itemsToTip = fromUser.inventory.filter(function(item) {
             return itemUniqueIds.includes(item.uniqueId);
         });
-
         if (itemsToTip.length === 0) return false;
 
         fromUser.inventory = fromUser.inventory.filter(function(item) {
             return !itemUniqueIds.includes(item.uniqueId);
         });
-
         toUser.inventory = toUser.inventory.concat(itemsToTip);
 
         this.save();
@@ -384,7 +276,6 @@ const DB = {
     updateUserAvatar(username, avatarUrl) {
         const user = this.data.users[username];
         if (!user) return false;
-
         user.avatar = avatarUrl;
         this.save();
         return true;
@@ -407,7 +298,6 @@ const DB = {
         if (this.shared.chat.length > 100) {
             this.shared.chat = this.shared.chat.slice(-100);
         }
-
         this.saveShared();
         return msg;
     },
@@ -421,9 +311,7 @@ const DB = {
         if (!type) type = 'wagered';
         if (!limit) limit = 20;
         return Object.values(this.data.users)
-            .sort(function(a, b) {
-                return (b.stats[type] || 0) - (a.stats[type] || 0);
-            })
+            .sort(function(a, b) { return (b.stats[type] || 0) - (a.stats[type] || 0); })
             .slice(0, limit);
     },
 
@@ -435,49 +323,24 @@ const DB = {
         return Object.values(this.data.users);
     },
 
-    resetUserInventory(username) {
-        const user = this.data.users[username];
-        if (!user) return false;
-
-        user.inventory = [];
-        this.save();
-        return true;
-    },
-
-    isMaintenanceMode() {
-        return this.data.maintenance || false;
-    },
-
-    setMaintenanceMode(enabled) {
-        this.data.maintenance = enabled;
-        this.save();
-    },
-
     filterBadWords(message) {
         const badWords = ['nigga', 'nigger', 'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'porn', 'sex', 'rape', 'kill', 'suicide', 'nazi', 'hitler'];
         let filtered = message.toLowerCase();
-        
         for (let i = 0; i < badWords.length; i++) {
             const word = badWords[i];
             const regex = new RegExp(word, 'gi');
             filtered = filtered.replace(regex, '***');
         }
-        
         return filtered;
     },
 
     resetUserInventory(username) {
         const user = this.data.users[username];
         if (!user) return false;
-
         user.inventory = [];
-        
-        // Supprimer les coinflips de cet user
-        const self = this;
         this.shared.coinflips = this.shared.coinflips.filter(function(cf) {
             return cf.creator !== username && cf.opponent !== username;
         });
-
         this.save();
         this.saveShared();
         return true;
@@ -485,21 +348,15 @@ const DB = {
 
     cancelAllCoinflips(returnItems) {
         const coinflips = this.shared.coinflips;
-        
         if (returnItems) {
-            // Rendre les items aux créateurs et opponents
             for (let i = 0; i < coinflips.length; i++) {
                 const cf = coinflips[i];
-                
-                // Rendre items au créateur
                 const creator = this.data.users[cf.creator];
                 if (creator && cf.creatorItems) {
                     for (let j = 0; j < cf.creatorItems.length; j++) {
                         creator.inventory.push(cf.creatorItems[j]);
                     }
                 }
-                
-                // Rendre items à l'opponent si il existe
                 if (cf.opponent && cf.opponentItems) {
                     const opponent = this.data.users[cf.opponent];
                     if (opponent) {
@@ -510,38 +367,34 @@ const DB = {
                 }
             }
         }
-        
-        // Supprimer tous les coinflips
         this.shared.coinflips = [];
-        
         this.save();
         this.saveShared();
         return true;
     },
 
     wipeAllData() {
-        // Reset tous les inventaires et stats
         const users = Object.keys(this.data.users);
         for (let i = 0; i < users.length; i++) {
             const username = users[i];
             this.data.users[username].inventory = [];
-            this.data.users[username].stats = {
-                wagered: 0,
-                won: 0,
-                lost: 0,
-                gamesPlayed: 0,
-                gamesWon: 0
-            };
+            this.data.users[username].stats = { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 };
         }
-
-        // Reset coinflips, history et chat
         this.shared.coinflips = [];
         this.shared.coinflipsHistory = [];
         this.shared.chat = [];
-
         this.save();
         this.saveShared();
         return true;
+    },
+
+    isMaintenanceMode() {
+        return this.data.maintenance || false;
+    },
+
+    setMaintenanceMode(enabled) {
+        this.data.maintenance = enabled;
+        this.save();
     }
 };
 

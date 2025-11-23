@@ -340,7 +340,6 @@ const SupaDB = {
 
         // Update stats
         const totalPot = cf.total_value * 2;
-        
         const winnerData = await this.getUser(winner);
         if (winnerData) {
             await this.updateUserStats(winner, {
@@ -360,13 +359,11 @@ const SupaDB = {
             });
         }
 
-        // Supprimer après 30s
-        setTimeout(async () => {
-            await supabase
-                .from('coinflips')
-                .delete()
-                .eq('id', coinflipId);
-        }, 30000);
+        // SUPPRIMER IMMÉDIATEMENT
+        await supabase
+            .from('coinflips')
+            .delete()
+            .eq('id', coinflipId);
 
         return { winner: winner, winner_side: winnerSide };
     },

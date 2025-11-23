@@ -1071,30 +1071,10 @@ const App = {
         if (joined) {
             this.closeModal('joinCfModal');
             
-            // Envoyer notification système dans le chat
-            const creator = this.isOnline ? joined.creator : joined.creator;
-            const opponent = this.isOnline ? joined.opponent : joined.opponent;
-            const systemMsg = '🎮 ' + opponent + ' joined ' + creator + '\'s coinflip! Battle starting...';
+            // Sauvegarder l'ID du coinflip en cours dans localStorage pour que le créateur le voit
+            localStorage.setItem('brainrotflip_active_coinflip', this.joiningCoinflipId);
             
-            if (this.isOnline) {
-                await SupaDB.sendChatMessage('System', systemMsg);
-            } else {
-                // Ajouter message système temporaire
-                const msg = {
-                    id: 'msg_' + Date.now(),
-                    username: 'System',
-                    avatar: 'https://ui-avatars.com/api/?name=System&background=7c3aed&color=fff',
-                    isAdmin: true,
-                    message: systemMsg,
-                    timestamp: new Date().toISOString()
-                };
-                DB.shared.chat.push(msg);
-                DB.saveShared();
-            }
-            
-            this.loadChat();
-            
-            // Démarrer l'animation pour tous les joueurs
+            // Démarrer l'animation immédiatement
             this.startCoinflipAnimation(joined);
         }
     },
