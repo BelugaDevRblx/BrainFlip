@@ -281,7 +281,7 @@ const DB = {
 
         cf.winner = winner;
         cf.winnerSide = winnerSide;
-        cf.status = 'finished';
+        // NE PAS changer status - garder "playing" pour rester dans active games
         cf.finishedAt = new Date().toISOString();
 
         // Copier les items pour les donner au gagnant
@@ -315,7 +315,7 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
-        // Garder dans la liste des coinflips pour 30s
+        // Supprimer après 30s
         const self = this;
         setTimeout(function() {
             self.shared.coinflips = self.shared.coinflips.filter(function(c) {

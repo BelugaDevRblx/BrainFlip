@@ -603,21 +603,9 @@ const App = {
     async loadCoinflips() {
         let coinflips = [];
         if (this.isOnline) {
-            const active = await SupaDB.getActiveCoinflips();
-            const { data: finished } = await supabase
-                .from('coinflips')
-                .select('*')
-                .eq('status', 'finished')
-                .order('finished_at', { ascending: false })
-                .limit(5);
-            coinflips = active.concat(finished || []);
+            coinflips = await SupaDB.getActiveCoinflips();
         } else {
-            const active = DB.getActiveCoinflips();
-            const allCoinflips = DB.getAllCoinflips();
-            const finished = allCoinflips.filter(function(cf) {
-                return cf.status === 'finished';
-            });
-            coinflips = active.concat(finished);
+            coinflips = DB.getAllCoinflips();
         }
             
         const container = document.getElementById('coinflipList');
@@ -631,7 +619,8 @@ const App = {
 
         const activeCoinflips = coinflips.filter(function(cf) {
             const status = this.isOnline ? cf.status : cf.status;
-            return status === 'waiting';
+            const winner = this.isOnline ? cf.winner : cf.winner;
+            return status === 'waiting' || (status === 'playing' && !winner);
         }.bind(this));
 
         if (roomsEl) roomsEl.textContent = activeCoinflips.length;
@@ -668,11 +657,12 @@ const App = {
             const creatorItems = this.isOnline ? cf.creator_items : cf.creatorItems;
             const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
             const cfId = this.isOnline ? cf.id : cf.id;
+            const winner = this.isOnline ? cf.winner : cf.winner;
             
-            if (status === 'finished') {
+            // Si le coinflip a un winner, c'est terminé
+            if (winner) {
                 const opponent = this.isOnline ? cf.opponent : cf.opponent;
                 const opponentAvatar = this.isOnline ? cf.opponent_avatar : cf.opponentAvatar;
-                const winner = this.isOnline ? cf.winner : cf.winner;
                 const winnerSide = this.isOnline ? cf.winner_side : cf.winnerSide;
                 const winnerSideImg = winnerSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
                 
@@ -681,23 +671,23 @@ const App = {
                     '<div class="cf-player' + (winner === creator ? '' : ' waiting') + '">' +
                     '<img class="cf-player-avatar" src="' + creatorAvatar + '">' +
                     '<div class="cf-player-info">' +
-                    '<div class="name ' + (winner === creator ? 'purple' : 'waiting') + '">' + creator + (winner === creator ? ' 🏆' : '') + '</div>' +
+                    '<div class="name ' + (winner === creator ? 'purple' : 'waiting') + '">' + creator + (winner === creator ? ' 🏆' : ' ❌') + '</div>' +
                     '</div>' +
                     '</div>' +
-                    '<img src="' + winnerSideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--accent-green);">' +
-                    '<div class="vs-badge">VS</div>' +
+                    '<img src="' + winnerSideImg + '" style="width:48px;height:48px;border-radius:50%;border:3px solid var(--accent-green);box-shadow:0 0 20px var(--accent-green);">' +
+                    '<div class="vs-badge" style="background:var(--accent-green);font-size:1.5rem;">⚡</div>' +
                     '<div class="cf-player' + (winner === opponent ? '' : ' waiting') + '">' +
                     '<img class="cf-player-avatar" src="' + opponentAvatar + '">' +
                     '<div class="cf-player-info">' +
-                    '<div class="name ' + (winner === opponent ? 'orange' : 'waiting') + '">' + opponent + (winner === opponent ? ' 🏆' : '') + '</div>' +
+                    '<div class="name ' + (winner === opponent ? 'orange' : 'waiting') + '">' + opponent + (winner === opponent ? ' 🏆' : ' ❌') + '</div>' +
                     '</div>' +
                     '</div>' +
                     '</div>' +
-                    '<div class="cf-value">' +
-                    '<div class="amount" style="color:var(--accent-green);">' + this.formatNumber(totalValue * 2) + ' 💎</div>' +
-                    '<div class="label">Winner Pot</div>' +
+                    '<div class="cf-value" style="background:linear-gradient(135deg,rgba(34,197,94,0.2),transparent);border:2px solid var(--accent-green);box-shadow:0 0 20px rgba(34,197,94,0.3);">' +
+                    '<div class="amount" style="color:var(--accent-green);font-size:1.8rem;">' + this.formatNumber(totalValue * 2) + ' 💎</div>' +
+                    '<div class="label" style="color:var(--accent-green);font-weight:700;">🎉 WINNER POT</div>' +
                     '</div>' +
-                    '<span style="color:var(--accent-green);font-weight:700;">FINISHED</span>' +
+                    '<button class="join-btn" style="background:var(--accent-green);pointer-events:none;cursor:default;">FINISHED</button>' +
                     '</div>';
                 continue;
             }
@@ -721,7 +711,7 @@ const App = {
                 '<div style="display:flex;align-items:center;margin-top:0.25rem;">' + itemsPreview + '</div>' +
                 '</div>' +
                 '</div>' +
-                '<img src="' + sideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--border-color);">' +
+                '<img src="' + sideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--accent-purple);">' +
                 '<div class="vs-badge">VS</div>' +
                 '<div class="cf-player waiting">' +
                 '<img class="cf-player-avatar" src="https://ui-avatars.com/api/?name=?&background=2a2e3a&color=8b8fa3&size=128">' +
@@ -1581,13 +1571,19 @@ const App = {
             }
         }
 
-        // Filtrer les bad words
+        // Filtrer les bad words (ACTIF)
+        const originalMsg = msg;
         const filtered = this.isOnline
             ? SupaDB.filterBadWords(msg)
             : DB.filterBadWords(msg);
 
+        // Vérifier si le message a été censuré
+        if (filtered !== originalMsg) {
+            this.showToast('Message contains inappropriate words!', 'error');
+        }
+
         // Vérifier caractères spéciaux bizarres
-        const validChars = /^[a-zA-Z0-9\s\-_!@#$%^&*(),.?":{}|<>]+$/;
+        const validChars = /^[a-zA-Z0-9\s\-_!@#$%^&*(),.?":{}|<>\/\[\]\\+=]+$/;
         if (!validChars.test(filtered)) {
             this.showToast('Invalid characters detected!', 'error');
             input.value = '';

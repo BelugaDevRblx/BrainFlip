@@ -345,11 +345,10 @@ const SupaDB = {
             });
         }
 
-        // Update coinflip status
+        // Update coinflip - garder status playing mais ajouter winner
         await supabase
             .from('coinflips')
             .update({
-                status: 'finished',
                 winner: winner,
                 winner_side: winnerSide,
                 finished_at: new Date().toISOString()
