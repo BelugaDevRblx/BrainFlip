@@ -79,7 +79,7 @@ const SupaDB = {
                 stats_lost: 0,
                 stats_games_played: 0,
                 stats_games_won: 0,
-                is_admin: username === 'DimaWarm_BlueHive',
+                is_admin: username === 'Brainflip',
                 inventory: [],
                 created_at: new Date().toISOString()
             };
@@ -144,7 +144,7 @@ const SupaDB = {
             stats_lost: 0,
             stats_games_played: 0,
             stats_games_won: 0,
-            is_admin: username === 'DimaWarm_BlueHive',
+            is_admin: username === 'Brainflip',
             inventory: [],
             created_at: new Date().toISOString()
         };
