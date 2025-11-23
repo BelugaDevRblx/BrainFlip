@@ -483,6 +483,42 @@ const DB = {
         return true;
     },
 
+    cancelAllCoinflips(returnItems) {
+        const coinflips = this.shared.coinflips;
+        
+        if (returnItems) {
+            // Rendre les items aux créateurs et opponents
+            for (let i = 0; i < coinflips.length; i++) {
+                const cf = coinflips[i];
+                
+                // Rendre items au créateur
+                const creator = this.data.users[cf.creator];
+                if (creator && cf.creatorItems) {
+                    for (let j = 0; j < cf.creatorItems.length; j++) {
+                        creator.inventory.push(cf.creatorItems[j]);
+                    }
+                }
+                
+                // Rendre items à l'opponent si il existe
+                if (cf.opponent && cf.opponentItems) {
+                    const opponent = this.data.users[cf.opponent];
+                    if (opponent) {
+                        for (let j = 0; j < cf.opponentItems.length; j++) {
+                            opponent.inventory.push(cf.opponentItems[j]);
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Supprimer tous les coinflips
+        this.shared.coinflips = [];
+        
+        this.save();
+        this.saveShared();
+        return true;
+    },
+
     wipeAllData() {
         // Reset tous les inventaires et stats
         const users = Object.keys(this.data.users);

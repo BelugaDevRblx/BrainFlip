@@ -511,6 +511,14 @@ const App = {
             '<button class="modal-btn" style="background:var(--accent-orange);" onclick="App.toggleMaintenance()">Toggle Maintenance</button>' +
             '</div>' +
             '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
+            '<h3 style="margin-bottom:1.5rem;">🚫 Cancel All Coinflips</h3>' +
+            '<p style="color:var(--text-secondary);margin-bottom:1rem;">Cancel all active coinflips on the site</p>' +
+            '<div style="display:flex;gap:1rem;">' +
+            '<button class="modal-btn" style="background:var(--accent-purple);" onclick="App.adminCancelAllCoinflips(true)">Cancel & Return Items</button>' +
+            '<button class="modal-btn" style="background:var(--accent-red);" onclick="App.adminCancelAllCoinflips(false)">Cancel & Delete Items</button>' +
+            '</div>' +
+            '</div>' +
+            '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
             '<h3 style="margin-bottom:1.5rem;">🗑️ Reset User Inventory</h3>' +
             '<input type="text" class="modal-input" id="adminResetUsername" placeholder="Username">' +
             '<button class="modal-btn" style="background:var(--accent-orange);" onclick="App.adminResetInventory()">Reset Inventory</button>' +
@@ -1690,6 +1698,22 @@ const App = {
             this.updateUI();
         } else {
             this.showToast('Failed to send tip!', 'error');
+        }
+    },
+
+    async adminCancelAllCoinflips(returnItems) {
+        const action = returnItems ? 'cancel and RETURN items' : 'cancel and DELETE items';
+        if (!confirm('Cancel ALL coinflips and ' + (returnItems ? 'return items to owners?' : 'DELETE all items?'))) return;
+
+        const success = this.isOnline
+            ? await SupaDB.cancelAllCoinflips(returnItems)
+            : DB.cancelAllCoinflips(returnItems);
+
+        if (success) {
+            this.showToast('All coinflips cancelled!', 'success');
+            this.loadCoinflips();
+        } else {
+            this.showToast('Failed to cancel coinflips!', 'error');
         }
     },
 

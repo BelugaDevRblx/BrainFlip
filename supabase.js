@@ -599,6 +599,57 @@ const SupaDB = {
         return true;
     },
 
+    async cancelAllCoinflips(returnItems) {
+        try {
+            if (returnItems) {
+                // Récupérer tous les coinflips
+                const { data: coinflips, error: fetchError } = await supabase
+                    .from('coinflips')
+                    .select('*');
+
+                if (!fetchError && coinflips) {
+                    // Rendre items à chaque user
+                    for (let i = 0; i < coinflips.length; i++) {
+                        const cf = coinflips[i];
+                        
+                        // Rendre au créateur
+                        const creator = await this.getUser(cf.creator);
+                        if (creator && cf.creator_items) {
+                            const newInventory = [...(creator.inventory || []), ...cf.creator_items];
+                            await supabase
+                                .from('users')
+                                .update({ inventory: newInventory })
+                                .eq('username', cf.creator);
+                        }
+                        
+                        // Rendre à l'opponent si il existe
+                        if (cf.opponent && cf.opponent_items) {
+                            const opponent = await this.getUser(cf.opponent);
+                            if (opponent) {
+                                const newInventory = [...(opponent.inventory || []), ...cf.opponent_items];
+                                await supabase
+                                    .from('users')
+                                    .update({ inventory: newInventory })
+                                    .eq('username', cf.opponent);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Supprimer tous les coinflips
+            await supabase
+                .from('coinflips')
+                .delete()
+                .neq('id', 'impossible_id');
+
+            return true;
+        } catch (error) {
+            console.error('Cancel all coinflips error:', error);
+            return false;
+        }
+    },
+
     filterBadWords(message) {
         const badWords = ['nigga', 'nigger', 'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'porn', 'sex', 'rape', 'kill', 'suicide', 'nazi', 'hitler'];
         let filtered = message.toLowerCase();
