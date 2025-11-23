@@ -24,6 +24,10 @@ const DB = {
             this.saveShared();
         }
 
+        // NETTOYER TOUS LES COINFLIPS AU DÉMARRAGE
+        this.shared.coinflips = [];
+        this.saveShared();
+
         this.save();
         return this.data;
     },

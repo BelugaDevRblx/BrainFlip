@@ -13,6 +13,26 @@ const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
 });
 
 const SupaDB = {
+    async init() {
+        // NETTOYER TOUS LES COINFLIPS AU DÉMARRAGE
+        try {
+            const { data: allCoinflips } = await supabase
+                .from('coinflips')
+                .select('id');
+                
+            if (allCoinflips && allCoinflips.length > 0) {
+                for (let i = 0; i < allCoinflips.length; i++) {
+                    await supabase
+                        .from('coinflips')
+                        .delete()
+                        .eq('id', allCoinflips[i].id);
+                }
+            }
+        } catch (error) {
+            console.error('Error cleaning coinflips on startup:', error);
+        }
+    },
+
     // USER MANAGEMENT
     async verifyRobloxUser(username) {
         try {
@@ -635,10 +655,18 @@ const SupaDB = {
             }
             
             // Supprimer tous les coinflips
-            await supabase
+            const { data: allCoinflips } = await supabase
                 .from('coinflips')
-                .delete()
-                .neq('id', 'impossible_id');
+                .select('id');
+                
+            if (allCoinflips && allCoinflips.length > 0) {
+                for (let i = 0; i < allCoinflips.length; i++) {
+                    await supabase
+                        .from('coinflips')
+                        .delete()
+                        .eq('id', allCoinflips[i].id);
+                }
+            }
 
             return true;
         } catch (error) {
@@ -684,16 +712,32 @@ const SupaDB = {
             }
 
             // Supprimer tous les coinflips
-            await supabase
+            const { data: allCoinflips } = await supabase
                 .from('coinflips')
-                .delete()
-                .neq('id', 'impossible_id');
+                .select('id');
+                
+            if (allCoinflips && allCoinflips.length > 0) {
+                for (let i = 0; i < allCoinflips.length; i++) {
+                    await supabase
+                        .from('coinflips')
+                        .delete()
+                        .eq('id', allCoinflips[i].id);
+                }
+            }
 
             // Supprimer tous les messages
-            await supabase
+            const { data: allMessages } = await supabase
                 .from('chat_messages')
-                .delete()
-                .neq('id', 'impossible_id');
+                .select('id');
+                
+            if (allMessages && allMessages.length > 0) {
+                for (let i = 0; i < allMessages.length; i++) {
+                    await supabase
+                        .from('chat_messages')
+                        .delete()
+                        .eq('id', allMessages[i].id);
+                }
+            }
 
             return true;
         } catch (error) {
