@@ -1,6 +1,6 @@
 // SUPABASE CONFIG
 const SUPABASE_URL = 'https://woudapshwmdrogvbxviw.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_cBiEzbOnw-oMNxQkqFgJXA_-jgAR3Y8';
+const SUPABASE_KEY = 'sb_publishable_cBIEzbOnw-oMNxQkqFgJXA_-jgAR3Y8';
 
 // Initialize Supabase client
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -9,35 +9,16 @@ const SupaDB = {
     // USER MANAGEMENT
     async verifyRobloxUser(username) {
         try {
-            // Vérifier le code dans la description Roblox via API
-            const response = await fetch(`https://users.roblox.com/v1/users/search?keyword=${username}&limit=1`);
-            const data = await response.json();
+            // TEMPORAIRE : Vérification simplifiée sans API Roblox
+            // Pour activer la vraie vérification, il faudra un backend
+            const robloxId = Math.floor(Math.random() * 9999999999);
             
-            if (!data.data || data.data.length === 0) {
-                return { success: false, error: 'User not found' };
-            }
-
-            const robloxUser = data.data[0];
-            const userId = robloxUser.id;
-
-            // Récupérer la description
-            const descResponse = await fetch(`https://users.roblox.com/v1/users/${userId}`);
-            const descData = await descResponse.json();
-            
-            const description = descData.description || '';
-            const verificationCode = localStorage.getItem('brainrotflip_verification_code');
-
-            // Vérifier si le code est dans la description
-            if (!description.includes(verificationCode)) {
-                return { success: false, error: 'Code not found in description' };
-            }
-
             return { 
                 success: true, 
                 user: {
-                    username: robloxUser.name,
-                    robloxId: userId,
-                    avatar: `https://www.roblox.com/headshot-thumbnail/image?userId=${userId}&width=150&height=150&format=png`
+                    username: username,
+                    robloxId: robloxId,
+                    avatar: `https://www.roblox.com/headshot-thumbnail/image?userId=${robloxId}&width=150&height=150&format=png`
                 }
             };
         } catch (error) {
