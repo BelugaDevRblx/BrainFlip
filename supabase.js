@@ -360,16 +360,6 @@ const SupaDB = {
             });
         }
 
-        // Update coinflip - garder status playing mais ajouter winner
-        await supabase
-            .from('coinflips')
-            .update({
-                winner: winner,
-                winner_side: winnerSide,
-                finished_at: new Date().toISOString()
-            })
-            .eq('id', coinflipId);
-
         // Supprimer après 30s
         setTimeout(async () => {
             await supabase
@@ -378,7 +368,7 @@ const SupaDB = {
                 .eq('id', coinflipId);
         }, 30000);
 
-        return { ...cf, winner, winner_side: winnerSide };
+        return { winner: winner, winner_side: winnerSide };
     },
 
     // CHAT

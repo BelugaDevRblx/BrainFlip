@@ -283,11 +283,6 @@ const DB = {
         const winner = winnerSide === cf.creatorSide ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
 
-        cf.winner = winner;
-        cf.winnerSide = winnerSide;
-        // NE PAS changer status - garder "playing" pour rester dans active games
-        cf.finishedAt = new Date().toISOString();
-
         // Copier les items pour les donner au gagnant
         const allItems = [];
         for (let i = 0; i < cf.creatorItems.length; i++) {
@@ -319,7 +314,7 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
-        // Supprimer après 30s
+        // Supprimer le coinflip après 30s
         const self = this;
         setTimeout(function() {
             self.shared.coinflips = self.shared.coinflips.filter(function(c) {
@@ -335,7 +330,8 @@ const DB = {
 
         this.save();
         this.saveShared();
-        return cf;
+        
+        return { winner: winner, winnerSide: winnerSide };
     },
 
     cancelCoinflip(coinflipId, username) {
