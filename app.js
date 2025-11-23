@@ -5,6 +5,8 @@ const App = {
     joiningCoinflipId: null,
     chatSubscription: null,
     coinflipSubscription: null,
+    isCreatingCoinflip: false,
+    isJoiningCoinflip: false,
 
     async init() {
         this.isOnline = typeof SupaDB !== 'undefined';
@@ -765,15 +767,9 @@ const App = {
                 '</div>';
                 
             if (creator !== this.currentUser.username) {
-                html += '<div style="display:flex;gap:0.5rem;">' +
-                    '<button class="join-btn" style="background:var(--bg-tertiary);color:var(--text-primary);padding:10px 20px;" onclick="App.viewCoinflip(\'' + cfId + '\')">View</button>' +
-                    '<button class="join-btn" onclick="App.openJoinModal(\'' + cfId + '\')">Join</button>' +
-                    '</div>';
+                html += '<button class="join-btn" onclick="App.openJoinModal(\'' + cfId + '\')">Join</button>';
             } else {
-                html += '<div style="display:flex;gap:0.5rem;">' +
-                    '<button class="join-btn" style="background:var(--bg-tertiary);color:var(--text-primary);" onclick="App.viewCoinflip(\'' + cfId + '\')">View</button>' +
-                    '<button class="join-btn" style="background:var(--accent-red);" onclick="App.cancelCoinflip(\'' + cfId + '\')">Cancel</button>' +
-                    '</div>';
+                html += '<button class="join-btn" style="background:var(--accent-red);" onclick="App.cancelCoinflip(\'' + cfId + '\')">Cancel</button>';
             }
             
             html += '</div>';
@@ -1054,6 +1050,12 @@ const App = {
             return;
         }
 
+        // PROTECTION ANTI-SPAM
+        if (this.isCreatingCoinflip) {
+            return;
+        }
+        this.isCreatingCoinflip = true;
+
         const cf = this.isOnline
             ? await SupaDB.createCoinflip(this.currentUser.username, this.selectedItems, this.selectedSide)
             : DB.createCoinflip(this.currentUser.username, this.selectedItems, this.selectedSide);
@@ -1072,9 +1074,20 @@ const App = {
             
             this.updateUI();
         }
+
+        // Débloquer après 1 seconde
+        setTimeout(() => {
+            this.isCreatingCoinflip = false;
+        }, 1000);
     },
 
     async confirmJoinCoinflip() {
+        // PROTECTION ANTI-SPAM
+        if (this.isJoiningCoinflip) {
+            return;
+        }
+        this.isJoiningCoinflip = true;
+
         const cf = this.isOnline
             ? await SupaDB.getCoinflip(this.joiningCoinflipId)
             : DB.getCoinflip(this.joiningCoinflipId);
@@ -1092,6 +1105,7 @@ const App = {
 
         if (selectedTotal < minReq || selectedTotal > maxReq) {
             this.showToast('Value must be ' + this.formatNumber(minReq) + '-' + this.formatNumber(maxReq), 'error');
+            this.isJoiningCoinflip = false;
             return;
         }
 
@@ -1108,6 +1122,11 @@ const App = {
             // Démarrer l'animation immédiatement
             this.startCoinflipAnimation(joined);
         }
+
+        // Débloquer après 1 seconde
+        setTimeout(() => {
+            this.isJoiningCoinflip = false;
+        }, 1000);
     },
 
     async startCoinflipAnimation(cf) {

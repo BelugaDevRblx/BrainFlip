@@ -1619,8 +1619,17 @@ body {
     border-radius: 16px;
     padding: 0;
     max-width: 900px;
+    width: 90%;
+    margin: 0 auto;
     position: relative;
     overflow: hidden;
+}
+
+.modal-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
 }
 
 .bloxyx-close {
