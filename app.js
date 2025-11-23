@@ -898,10 +898,13 @@ const App = {
         this.selectedSide = side;
         document.querySelectorAll('.side-option').forEach(opt => {
             opt.classList.remove('selected', 'purple', 'orange');
-            if (opt === el) {
-                opt.classList.add('selected', side);
-            }
         });
+        el.classList.add('selected');
+        if (side === 'H') {
+            el.classList.add('purple');
+        } else {
+            el.classList.add('orange');
+        }
     },
 
     async createCoinflip() {
