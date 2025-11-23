@@ -802,10 +802,10 @@ const App = {
             '<p style="color:var(--text-secondary);margin-bottom:0.75rem;">Choose your side:</p>' +
             '<div class="side-selector">' +
             '<div class="side-option purple selected" data-side="H" onclick="App.selectSide(\'H\',this)">' +
-            '<img src="Head_Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Heads</div>' +
+            '<img src="Head_Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;" onerror="this.style.display=\'none\'"><div>Heads</div>' +
             '</div>' +
             '<div class="side-option" data-side="T" onclick="App.selectSide(\'T\',this)">' +
-            '<img src="Tails_Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Tails</div>' +
+            '<img src="Tails_Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;" onerror="this.style.display=\'none\'"><div>Tails</div>' +
             '</div>' +
             '</div>' +
             '<button class="modal-btn success" onclick="App.createCoinflip()">Create Coinflip</button>' +
