@@ -1,0 +1,8 @@
+{
+  "name": "brainrotflip",
+  "version": "1.0.0",
+  "description": "BrainrotFlip gambling site",
+  "scripts": {
+    "build": "echo 'No build needed'"
+  }
+}
