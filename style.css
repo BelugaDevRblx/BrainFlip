@@ -1705,6 +1705,15 @@ body {
     justify-content: center;
 }
 
+.bloxyx-coin-video {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 4px solid rgba(124, 58, 237, 0.5);
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+    object-fit: cover;
+}
+
 .bloxyx-coin-big {
     width: 140px;
     height: 140px;

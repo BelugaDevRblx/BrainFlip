@@ -1171,7 +1171,9 @@ const App = {
             '<div class="bloxyx-username">' + creator + '</div>' +
             '</div>' +
             '<div class="bloxyx-vs-coin">' +
-            '<img src="' + creatorSideImg + '" class="bloxyx-coin-big" id="bxCoinImg">' +
+            '<video id="coinVideo" class="bloxyx-coin-video" muted autoplay>' +
+            '<source src="' + videoSrc + '" type="video/mp4">' +
+            '</video>' +
             '</div>' +
             '<div class="bloxyx-player-card">' +
             '<img src="' + opponentAvatar + '" class="bloxyx-avatar">' +
@@ -1192,26 +1194,14 @@ const App = {
             '<div class="bloxyx-items-list">' + opponentItemsHtml + '</div>' +
             '</div>' +
             '</div>' +
-            '<video id="coinVideo" style="display:none;" muted><source src="' + videoSrc + '" type="video/mp4"></video>' +
             '</div>';
             
         document.body.appendChild(modal);
 
-        const coinImg = document.getElementById('bxCoinImg');
         const video = document.getElementById('coinVideo');
-        
-        setTimeout(function() {
-            coinImg.classList.add('spinning');
-            video.play();
-        }, 500);
-
         const self = this;
+        
         video.onended = async function() {
-            const winnerSideImg = winnerSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
-            coinImg.src = winnerSideImg;
-            coinImg.classList.remove('spinning');
-            coinImg.classList.add('winner-reveal');
-
             const result = self.isOnline
                 ? await SupaDB.finishCoinflip(cfId, winnerSide)
                 : DB.finishCoinflip(cfId, winnerSide);
