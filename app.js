@@ -1,7 +1,7 @@
 const App = {
     currentUser: null,
     selectedItems: [],
-    selectedSide: 'purple',
+    selectedSide: 'H',
     joiningCoinflipId: null,
     chatSubscription: null,
     coinflipSubscription: null,
@@ -403,8 +403,8 @@ const App = {
             '<button class="action-btn create" onclick="App.openCreateModal()">Create Coinflip</button>' +
             '</div>' +
             '<div class="filters-row">' +
-            '<div class="filter-group"><span>🟣</span><span id="filterPurpleCount">0</span> Purple</div>' +
-            '<div class="filter-group"><span>🟠</span><span id="filterOrangeCount">0</span> Orange</div>' +
+            '<div class="filter-group"><img src="Head.Tile.png" style="width:24px;height:24px;"><span id="filterHeadsCount">0</span> Heads</div>' +
+            '<div class="filter-group"><img src="Tails.Tile.png" style="width:24px;height:24px;"><span id="filterTailsCount">0</span> Tails</div>' +
             '</div>' +
             '<div class="coinflip-list" id="coinflipList"></div>' +
             '</div>';
@@ -531,7 +531,7 @@ const App = {
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
             html += '<div class="inventory-item">' +
-                '<div class="icon">' + item.icon + '</div>' +
+                '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                 '<div class="name">' + item.name + '</div>' +
                 '<div class="value">' + item.value + ' 💎</div>' +
                 '</div>';
@@ -556,27 +556,27 @@ const App = {
         const roomsEl = document.getElementById('cfStatRooms');
         const valueEl = document.getElementById('cfStatValue');
         const itemsEl = document.getElementById('cfStatItems');
-        const purpleEl = document.getElementById('filterPurpleCount');
-        const orangeEl = document.getElementById('filterOrangeCount');
+        const headsEl = document.getElementById('filterHeadsCount');
+        const tailsEl = document.getElementById('filterTailsCount');
 
         if (roomsEl) roomsEl.textContent = coinflips.length;
         
         let totalValue = 0;
         let totalItems = 0;
-        let purpleCount = 0;
+        let headsCount = 0;
         
         for (let i = 0; i < coinflips.length; i++) {
             const cf = coinflips[i];
             totalValue += this.isOnline ? cf.total_value : cf.totalValue;
             totalItems += this.isOnline ? cf.creator_items.length : cf.creatorItems.length;
             const side = this.isOnline ? cf.creator_side : cf.creatorSide;
-            if (side === 'purple') purpleCount++;
+            if (side === 'H') headsCount++;
         }
         
         if (valueEl) valueEl.textContent = this.formatNumber(totalValue);
         if (itemsEl) itemsEl.textContent = totalItems;
-        if (purpleEl) purpleEl.textContent = purpleCount;
-        if (orangeEl) orangeEl.textContent = coinflips.length - purpleCount;
+        if (headsEl) headsEl.textContent = headsCount;
+        if (tailsEl) tailsEl.textContent = coinflips.length - headsCount;
 
         if (coinflips.length === 0) {
             container.innerHTML = '<div class="no-games-message"><div class="icon">🪙</div><p>No active games</p><p style="font-size:0.9rem;margin-top:0.5rem;">Be the first to create one!</p></div>';
@@ -593,17 +593,26 @@ const App = {
             const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
             const cfId = this.isOnline ? cf.id : cf.id;
             
-            const sideClass = creatorSide === 'purple' ? 'purple' : 'orange';
+            const sideImg = creatorSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+            
+            let itemsPreview = '';
+            for (let j = 0; j < Math.min(4, creatorItems.length); j++) {
+                itemsPreview += '<img src="' + creatorItems[j].icon + '" style="width:32px;height:32px;margin-right:-8px;border-radius:6px;border:2px solid var(--bg-secondary);">';
+            }
+            if (creatorItems.length > 4) {
+                itemsPreview += '<span style="font-size:0.85rem;color:var(--text-secondary);margin-left:8px;">+' + (creatorItems.length - 4) + '</span>';
+            }
             
             html += '<div class="coinflip-card">' +
                 '<div class="cf-players">' +
                 '<div class="cf-player">' +
                 '<img class="cf-player-avatar" src="' + creatorAvatar + '">' +
                 '<div class="cf-player-info">' +
-                '<div class="name ' + sideClass + '">' + creator + '</div>' +
-                '<div style="font-size:0.85rem;color:var(--text-secondary);">' + creatorItems.length + ' items</div>' +
+                '<div class="name purple">' + creator + '</div>' +
+                '<div style="display:flex;align-items:center;margin-top:0.25rem;">' + itemsPreview + '</div>' +
                 '</div>' +
                 '</div>' +
+                '<img src="' + sideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--border-color);">' +
                 '<div class="vs-badge">VS</div>' +
                 '<div class="cf-player waiting">' +
                 '<img class="cf-player-avatar" src="https://ui-avatars.com/api/?name=?&background=2a2e3a&color=8b8fa3&size=128">' +
@@ -618,9 +627,12 @@ const App = {
                 '</div>';
                 
             if (creator !== this.currentUser.username) {
-                html += '<button class="join-btn" onclick="App.openJoinModal(\'' + cfId + '\')">Join</button>';
+                html += '<div style="display:flex;gap:0.5rem;">' +
+                    '<button class="join-btn" style="background:var(--bg-tertiary);color:var(--text-primary);padding:10px 20px;" onclick="App.viewCoinflip(\'' + cfId + '\')">View</button>' +
+                    '<button class="join-btn" onclick="App.openJoinModal(\'' + cfId + '\')">Join</button>' +
+                    '</div>';
             } else {
-                html += '<span style="color:var(--text-secondary);font-style:italic;">Your game</span>';
+                html += '<button class="join-btn" style="background:var(--bg-tertiary);color:var(--text-primary);" onclick="App.viewCoinflip(\'' + cfId + '\')">View</button>';
             }
             
             html += '</div>';
@@ -669,7 +681,7 @@ const App = {
                 '<p style="color:var(--text-secondary);grid-column:span 4;text-align:center;padding:2rem;">No items to withdraw</p>' :
                 this.currentUser.inventory.map((item, i) => 
                     '<div class="item-card" data-id="' + item.uniqueId + '" onclick="App.toggleWithdrawItem(this)">' +
-                    '<div class="icon">' + item.icon + '</div>' +
+                    '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                     '<div class="name">' + item.name + '</div>' +
                     '<div class="value">' + item.value + ' 💎</div>' +
                     '</div>'
@@ -749,7 +761,7 @@ const App = {
 
     async openCreateModal() {
         this.selectedItems = [];
-        this.selectedSide = 'purple';
+        this.selectedSide = 'H';
         
         if (this.isOnline) {
             const user = await SupaDB.getUser(this.currentUser.username);
@@ -769,7 +781,7 @@ const App = {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
                 itemsHtml += '<div class="item-card" data-id="' + item.uniqueId + '" data-value="' + item.value + '" onclick="App.toggleItem(this,\'create\')">' +
-                    '<div class="icon">' + item.icon + '</div>' +
+                    '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                     '<div class="name">' + item.name + '</div>' +
                     '<div class="value">' + item.value + ' 💎</div>' +
                     '</div>';
@@ -789,11 +801,11 @@ const App = {
             '</div>' +
             '<p style="color:var(--text-secondary);margin-bottom:0.75rem;">Choose your side:</p>' +
             '<div class="side-selector">' +
-            '<div class="side-option purple selected" data-side="purple" onclick="App.selectSide(\'purple\',this)">' +
-            '<div class="icon">🟣</div><div>Purple</div>' +
+            '<div class="side-option purple selected" data-side="H" onclick="App.selectSide(\'H\',this)">' +
+            '<img src="Head.Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Heads</div>' +
             '</div>' +
-            '<div class="side-option" data-side="orange" onclick="App.selectSide(\'orange\',this)">' +
-            '<div class="icon">🟠</div><div>Orange</div>' +
+            '<div class="side-option" data-side="T" onclick="App.selectSide(\'T\',this)">' +
+            '<img src="Tails.Tile.png" style="width:64px;height:64px;margin-bottom:0.5rem;"><div>Tails</div>' +
             '</div>' +
             '</div>' +
             '<button class="modal-btn success" onclick="App.createCoinflip()">Create Coinflip</button>' +
@@ -833,7 +845,7 @@ const App = {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
                 itemsHtml += '<div class="item-card" data-id="' + item.uniqueId + '" data-value="' + item.value + '" onclick="App.toggleItem(this,\'join\')">' +
-                    '<div class="icon">' + item.icon + '</div>' +
+                    '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                     '<div class="name">' + item.name + '</div>' +
                     '<div class="value">' + item.value + ' 💎</div>' +
                     '</div>';
@@ -950,11 +962,12 @@ const App = {
     },
 
     async startCoinflipAnimation(cf) {
-        const winnerSide = Math.random() < 0.5 ? 'purple' : 'orange';
-        const videoSrc = winnerSide === 'purple' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
+        const winnerSide = Math.random() < 0.5 ? 'H' : 'T';
+        const videoSrc = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
 
         const creator = this.isOnline ? cf.creator : cf.creator;
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
+        const creatorSide = this.isOnline ? cf.creator_side : cf.creatorSide;
         const opponent = this.isOnline ? cf.opponent : cf.opponent;
         const opponentAvatar = this.isOnline ? cf.opponent_avatar : cf.opponentAvatar;
         const creatorValue = this.isOnline ? cf.total_value : cf.totalValue;
@@ -964,6 +977,10 @@ const App = {
         for (let i = 0; i < opponentItems.length; i++) {
             opponentValue += opponentItems[i].value;
         }
+
+        const opponentSide = creatorSide === 'H' ? 'T' : 'H';
+        const creatorSideImg = creatorSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+        const opponentSideImg = opponentSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
 
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
@@ -976,12 +993,14 @@ const App = {
             '<img src="' + creatorAvatar + '">' +
             '<div class="name">' + creator + '</div>' +
             '<div class="value">' + this.formatNumber(creatorValue) + ' 💎</div>' +
+            '<img src="' + creatorSideImg + '" style="width:42px;height:42px;margin-top:0.5rem;border-radius:50%;border:2px solid var(--accent-purple);">' +
             '</div>' +
             '<div class="vs-badge" style="font-size:2rem;">VS</div>' +
             '<div class="arena-player orange">' +
             '<img src="' + opponentAvatar + '">' +
             '<div class="name">' + opponent + '</div>' +
             '<div class="value">' + this.formatNumber(opponentValue) + ' 💎</div>' +
+            '<img src="' + opponentSideImg + '" style="width:42px;height:42px;margin-top:0.5rem;border-radius:50%;border:2px solid var(--accent-orange);">' +
             '</div>' +
             '</div>' +
             '<div class="coin-container">' +
@@ -1237,6 +1256,73 @@ const App = {
                 toast.remove();
             }, 300);
         }, 3500);
+    },
+
+    async viewCoinflip(coinflipId) {
+        const cf = this.isOnline
+            ? await SupaDB.getCoinflip(coinflipId)
+            : DB.getCoinflip(coinflipId);
+            
+        if (!cf) {
+            this.showToast('Coinflip not found!', 'error');
+            return;
+        }
+
+        const creator = this.isOnline ? cf.creator : cf.creator;
+        const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
+        const creatorSide = this.isOnline ? cf.creator_side : cf.creatorSide;
+        const creatorItems = this.isOnline ? cf.creator_items : cf.creatorItems;
+        const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
+
+        const creatorSideImg = creatorSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+        const opponentSide = creatorSide === 'H' ? 'T' : 'H';
+        const opponentSideImg = opponentSide === 'H' ? 'Head.Tile.png' : 'Tails.Tile.png';
+
+        let creatorItemsHtml = '';
+        for (let i = 0; i < creatorItems.length; i++) {
+            creatorItemsHtml += '<div style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--bg-card);border-radius:8px;">' +
+                '<img src="' + creatorItems[i].icon + '" style="width:32px;height:32px;">' +
+                '<div style="flex:1;">' +
+                '<div style="font-size:0.85rem;font-weight:600;">' + creatorItems[i].name + '</div>' +
+                '<div style="font-size:0.75rem;color:var(--accent-purple);">' + creatorItems[i].value + ' 💎</div>' +
+                '</div>' +
+                '</div>';
+        }
+
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay';
+        modal.id = 'viewCfModal';
+        modal.innerHTML = '<div class="modal wide">' +
+            '<div class="modal-header">' +
+            '<h2>👁️ View Coinflip</h2>' +
+            '<button class="modal-close" onclick="App.closeModal(\'viewCfModal\')">×</button>' +
+            '</div>' +
+            '<div style="background:var(--bg-tertiary);padding:1.5rem;border-radius:12px;margin-bottom:1.5rem;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">' +
+            '<div style="text-align:center;flex:1;">' +
+            '<img src="' + creatorAvatar + '" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent-purple);margin-bottom:0.5rem;">' +
+            '<div style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem;">' + creator + '</div>' +
+            '<img src="' + creatorSideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--accent-purple);">' +
+            '</div>' +
+            '<div style="font-size:2rem;font-weight:900;color:var(--text-secondary);">VS</div>' +
+            '<div style="text-align:center;flex:1;">' +
+            '<img src="https://ui-avatars.com/api/?name=?&background=2a2e3a&color=8b8fa3&size=128" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--border-color);margin-bottom:0.5rem;opacity:0.4;">' +
+            '<div style="font-weight:700;font-size:1.1rem;margin-bottom:0.25rem;color:var(--text-secondary);">Waiting...</div>' +
+            '<img src="' + opponentSideImg + '" style="width:42px;height:42px;border-radius:50%;border:2px solid var(--accent-orange);opacity:0.4;">' +
+            '</div>' +
+            '</div>' +
+            '</div>' +
+            '<div style="background:var(--bg-tertiary);padding:1.5rem;border-radius:12px;">' +
+            '<h3 style="margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;">' +
+            '<span>📦</span> Items (' + creatorItems.length + ') - ' + this.formatNumber(totalValue) + ' 💎' +
+            '</h3>' +
+            '<div style="display:grid;grid-template-columns:1fr;gap:0.5rem;max-height:280px;overflow-y:auto;">' +
+            creatorItemsHtml +
+            '</div>' +
+            '</div>' +
+            '</div>';
+            
+        document.body.appendChild(modal);
     },
 
     logout() {

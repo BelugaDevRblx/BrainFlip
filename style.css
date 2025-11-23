@@ -877,8 +877,18 @@ body {
 }
 
 .item-card .icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 0.5rem;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.item-card .icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .item-card .name {
@@ -1131,8 +1141,15 @@ body {
 }
 
 .inventory-item .icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 0.5rem;
+}
+
+.inventory-item .icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
 }
 
 .inventory-item .name {
