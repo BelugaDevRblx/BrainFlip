@@ -1157,8 +1157,6 @@ const App = {
             opponentTotal += opponentItems[i].value;
         }
 
-        const cfId = this.isOnline ? cf.id : cf.id;
-
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.id = 'cfAnimationModal';
