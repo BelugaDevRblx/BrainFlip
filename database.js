@@ -29,7 +29,7 @@ const DB = {
             this.data.users['Brainflip'] = {
                 id: 'usr_admin_brainflip',
                 username: 'Brainflip',
-                password: 'admin123',
+                password: 'Beluga.2009',
                 robloxId: '1',
                 verified: true,
                 isAdmin: true,
