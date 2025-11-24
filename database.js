@@ -8,6 +8,13 @@ const DB = {
         const saved = localStorage.getItem(this.STORAGE_KEY);
         if (saved) {
             this.data = JSON.parse(saved);
+            
+            // FORCER RESET si anciens items détectés
+            if (this.data.items && this.data.items.skibidi_toilet) {
+                console.log('Old data detected, resetting...');
+                localStorage.removeItem(this.STORAGE_KEY);
+                this.data = this.getDefaultData();
+            }
         } else {
             this.data = this.getDefaultData();
         }
@@ -393,7 +400,6 @@ const DB = {
             name: baseItem.name,
             value: baseItem.value,
             icon: baseItem.icon,
-            rarity: itemData.rarity || baseItem.rarity,
             traits: itemData.traits || [],
             mutation: itemData.mutation || null
         };

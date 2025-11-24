@@ -566,13 +566,6 @@ const App = {
             '<h3 style="margin-bottom:1.5rem;">➕ Add Item with Traits & Mutation</h3>' +
             '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username" style="margin-bottom:1rem;">' +
             '<select class="modal-input" id="adminAddItem" style="margin-bottom:1rem;"></select>' +
-            '<select class="modal-input" id="adminAddRarity" style="margin-bottom:1rem;">' +
-            '<option value="common">Common</option>' +
-            '<option value="rare">Rare</option>' +
-            '<option value="epic">Epic</option>' +
-            '<option value="legendary" selected>Legendary</option>' +
-            '<option value="mythic">Mythic</option>' +
-            '</select>' +
             '<div style="background:var(--bg-tertiary);padding:1rem;border-radius:8px;margin-bottom:1rem;">' +
             '<div style="font-weight:600;margin-bottom:0.5rem;">✨ Traits (Multiple):</div>' +
             '<div id="adminTraitsContainer" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;"></div>' +
@@ -1441,7 +1434,6 @@ const App = {
     async adminAddItemWithTraits() {
         const usernameEl = document.getElementById('adminAddUsername');
         const itemIdEl = document.getElementById('adminAddItem');
-        const rarityEl = document.getElementById('adminAddRarity');
         const mutationEl = document.getElementById('adminAddMutation');
         const traitCheckboxes = document.querySelectorAll('.admin-trait-checkbox:checked');
 
@@ -1449,7 +1441,6 @@ const App = {
 
         const username = usernameEl.value.trim();
         const itemId = itemIdEl.value;
-        const rarity = rarityEl.value;
         const mutation = mutationEl.value || null;
         
         // Récupérer les traits sélectionnés
@@ -1474,7 +1465,6 @@ const App = {
 
         const itemData = {
             itemId: itemId,
-            rarity: rarity,
             traits: traits,
             mutation: mutation
         };
