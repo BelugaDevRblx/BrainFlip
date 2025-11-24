@@ -2149,3 +2149,214 @@ body {
     0%, 100% { filter: brightness(1.2); opacity: 1; }
     50% { filter: brightness(1.6); opacity: 0.9; }
 }
+
+/* Wallet Modal Style Bloxyx */
+.wallet-modal {
+    max-width: 1200px !important;
+    min-height: 600px;
+    padding: 0 !important;
+}
+
+.wallet-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.wallet-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+}
+
+.wallet-tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 2rem;
+}
+
+.wallet-tab {
+    padding: 1rem 2rem;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+}
+
+.wallet-tab.active {
+    color: var(--accent-purple);
+    border-bottom-color: var(--accent-purple);
+}
+
+.wallet-tab:hover {
+    color: var(--text-primary);
+}
+
+.wallet-filters {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.wallet-search {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.wallet-sort {
+    padding: 0.75rem 1rem;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-primary);
+    min-width: 180px;
+    cursor: pointer;
+}
+
+.wallet-balance {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem 2rem;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.balance-icon {
+    font-size: 1.2rem;
+}
+
+.balance-items {
+    margin-left: auto;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.wallet-items-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
+    padding: 2rem;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.wallet-item {
+    background: var(--bg-tertiary);
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.wallet-item:hover {
+    border-color: var(--accent-purple);
+    transform: translateY(-2px);
+}
+
+.wallet-item.selected {
+    border-color: var(--accent-purple);
+    background: rgba(124, 58, 237, 0.1);
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+}
+
+.wallet-item img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 0.5rem;
+}
+
+.wallet-item-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wallet-item-value {
+    color: var(--accent-purple);
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+
+.wallet-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.wallet-empty div:first-child {
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.wallet-deposit-btn {
+    margin-top: 1.5rem;
+    padding: 0.75rem 2rem;
+    background: var(--accent-purple);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.wallet-footer {
+    display: flex;
+    gap: 1rem;
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.wallet-footer-btn {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.wallet-footer-btn.secondary {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.wallet-footer-btn.secondary:hover {
+    background: var(--bg-secondary);
+}
+
+.wallet-footer-btn.primary {
+    background: var(--accent-purple);
+    color: white;
+}
+
+.wallet-footer-btn.primary:hover {
+    background: #6b2fbd;
+}
+
+.wallet-footer-btn.primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

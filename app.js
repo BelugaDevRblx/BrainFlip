@@ -8,6 +8,8 @@ const App = {
     isCreatingCoinflip: false,
     isJoiningCoinflip: false,
     lastChatTime: 0,
+    walletTab: 'deposit',
+    selectedWalletItems: [],
 
     async init() {
         this.isOnline = typeof SupaDB !== 'undefined';
@@ -892,27 +894,179 @@ const App = {
     },
 
     openWalletModal() {
+        this.walletTab = 'deposit';
+        this.selectedWalletItems = [];
+        
         const modal = document.createElement('div');
         modal.className = 'modal-overlay';
         modal.id = 'walletModal';
-        modal.innerHTML = '<div class="modal">' +
-            '<div class="modal-header">' +
-            '<h2>💎 Deposit Items</h2>' +
+        modal.innerHTML = '<div class="modal wallet-modal">' +
+            '<div class="wallet-header">' +
+            '<h2>💼 Wallet</h2>' +
             '<button class="modal-close" onclick="App.closeModal(\'walletModal\')">×</button>' +
             '</div>' +
-            '<p style="color:var(--text-secondary);margin-bottom:1.5rem;">To deposit items, contact staff on Discord.</p>' +
-            '<div style="background:var(--bg-tertiary);padding:1.25rem;border-radius:12px;margin-bottom:1.5rem;">' +
-            '<p style="font-weight:600;margin-bottom:0.75rem;">How to Deposit:</p>' +
-            '<ol style="color:var(--text-secondary);font-size:0.95rem;margin-left:1.25rem;line-height:1.8;">' +
-            '<li>Join our Discord server</li>' +
-            '<li>Open a ticket in #deposit</li>' +
-            '<li>Trade your items to staff</li>' +
-            '<li>Items will be added instantly</li>' +
-            '</ol>' +
+            '<div class="wallet-tabs">' +
+            '<button class="wallet-tab active" onclick="App.switchWalletTab(\'deposit\', this)">Deposit</button>' +
+            '<button class="wallet-tab" onclick="App.switchWalletTab(\'withdraw\', this)">Withdraw</button>' +
             '</div>' +
-            '<a href="#" class="discord-btn" style="width:100%;display:flex;justify-content:center;">Join Discord Server</a>' +
+            '<div class="wallet-filters">' +
+            '<input type="text" class="wallet-search" id="walletSearch" placeholder="Search for an item..." oninput="App.filterWalletItems()">' +
+            '<select class="wallet-sort" id="walletSort" onchange="App.filterWalletItems()">' +
+            '<option value="highest">Highest to Lowest</option>' +
+            '<option value="lowest">Lowest to Highest</option>' +
+            '<option value="name">Name (A-Z)</option>' +
+            '</select>' +
+            '</div>' +
+            '<div class="wallet-balance">' +
+            '<span class="balance-icon">💎</span>' +
+            '<span id="walletBalanceAmount">0B$</span>' +
+            '<span class="balance-items" id="walletItemCount">0 items</span>' +
+            '</div>' +
+            '<div class="wallet-items-grid" id="walletItemsGrid"></div>' +
+            '<div class="wallet-footer">' +
+            '<button class="wallet-footer-btn secondary" onclick="App.selectAllWalletItems()">Select all</button>' +
+            '<button class="wallet-footer-btn primary" onclick="App.withdrawItems()" id="withdrawBtn">Withdraw B$0</button>' +
+            '</div>' +
             '</div>';
         document.body.appendChild(modal);
+        
+        this.loadWalletItems();
+    },
+
+    switchWalletTab(tab, el) {
+        this.walletTab = tab;
+        document.querySelectorAll('.wallet-tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        
+        this.selectedWalletItems = [];
+        this.loadWalletItems();
+    },
+
+    async loadWalletItems() {
+        if (this.isOnline) {
+            const user = await SupaDB.getUser(this.currentUser.username);
+            this.currentUser.inventory = user.inventory || [];
+        } else {
+            this.currentUser = DB.getUser(this.currentUser.username);
+        }
+        
+        this.filterWalletItems();
+    },
+
+    filterWalletItems() {
+        const search = document.getElementById('walletSearch');
+        const sort = document.getElementById('walletSort');
+        const grid = document.getElementById('walletItemsGrid');
+        const balanceEl = document.getElementById('walletBalanceAmount');
+        const countEl = document.getElementById('walletItemCount');
+        
+        if (!grid) return;
+        
+        let items = [...this.currentUser.inventory];
+        
+        // Recherche
+        if (search && search.value) {
+            const query = search.value.toLowerCase();
+            items = items.filter(item => item.name.toLowerCase().includes(query));
+        }
+        
+        // Tri
+        if (sort) {
+            if (sort.value === 'highest') {
+                items.sort((a, b) => (b.finalValue || b.value) - (a.finalValue || a.value));
+            } else if (sort.value === 'lowest') {
+                items.sort((a, b) => (a.finalValue || a.value) - (b.finalValue || b.value));
+            } else if (sort.value === 'name') {
+                items.sort((a, b) => a.name.localeCompare(b.name));
+            }
+        }
+        
+        // Affichage
+        if (items.length === 0) {
+            grid.innerHTML = '<div class="wallet-empty">' +
+                '<div>No items!</div>' +
+                '<p>No items were found...</p>' +
+                '<button class="wallet-deposit-btn" onclick="alert(\'Contact staff on Discord to deposit items\')">Deposit</button>' +
+                '</div>';
+            if (balanceEl) balanceEl.textContent = '0B$';
+            if (countEl) countEl.textContent = '0 items';
+            return;
+        }
+        
+        let html = '';
+        let totalValue = 0;
+        for (let i = 0; i < items.length; i++) {
+            const item = items[i];
+            const itemValue = item.finalValue || item.value || 0;
+            totalValue += itemValue;
+            
+            const isSelected = this.selectedWalletItems.includes(item.uniqueId);
+            const selectedClass = isSelected ? ' selected' : '';
+            
+            let effectClass = '';
+            if (item.mutation && !this.isOnline) {
+                const mutation = DB.data.availableMutations[item.mutation];
+                if (mutation && mutation.effect) {
+                    effectClass = ' mutation-' + mutation.effect;
+                }
+            }
+            
+            html += '<div class="wallet-item' + selectedClass + effectClass + '" onclick="App.toggleWalletItem(\'' + item.uniqueId + '\')">' +
+                '<img src="' + item.icon + '" alt="' + item.name + '">' +
+                '<div class="wallet-item-name">' + item.name + '</div>' +
+                '<div class="wallet-item-value">' + this.formatNumber(itemValue) + ' 💎</div>' +
+                '</div>';
+        }
+        grid.innerHTML = html;
+        
+        if (balanceEl) balanceEl.textContent = this.formatNumber(totalValue / 1000) + 'B$';
+        if (countEl) countEl.textContent = items.length + ' items';
+        
+        this.updateWithdrawButton();
+    },
+
+    toggleWalletItem(uniqueId) {
+        const index = this.selectedWalletItems.indexOf(uniqueId);
+        if (index === -1) {
+            this.selectedWalletItems.push(uniqueId);
+        } else {
+            this.selectedWalletItems.splice(index, 1);
+        }
+        this.filterWalletItems();
+    },
+
+    selectAllWalletItems() {
+        if (this.selectedWalletItems.length === this.currentUser.inventory.length) {
+            this.selectedWalletItems = [];
+        } else {
+            this.selectedWalletItems = this.currentUser.inventory.map(item => item.uniqueId);
+        }
+        this.filterWalletItems();
+    },
+
+    updateWithdrawButton() {
+        const btn = document.getElementById('withdrawBtn');
+        if (!btn) return;
+        
+        let totalValue = 0;
+        for (let i = 0; i < this.selectedWalletItems.length; i++) {
+            const item = this.currentUser.inventory.find(it => it.uniqueId === this.selectedWalletItems[i]);
+            if (item) {
+                totalValue += item.finalValue || item.value || 0;
+            }
+        }
+        
+        btn.textContent = 'Withdraw B$' + this.formatNumber(totalValue / 1000);
+        btn.disabled = this.selectedWalletItems.length === 0;
+    },
+
+    withdrawItems() {
+        if (this.selectedWalletItems.length === 0) {
+            this.showToast('Select items to withdraw!', 'error');
+            return;
+        }
+        
+        this.showToast('Contact staff on Discord to withdraw items', 'info');
     },
 
     async openCreateModal() {
@@ -936,10 +1090,20 @@ const App = {
         } else {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
-                itemsHtml += '<div class="item-card" data-id="' + item.uniqueId + '" data-value="' + item.value + '" onclick="App.toggleItem(this,\'create\')">' +
+                const itemValue = item.finalValue || item.value || 0;
+                
+                let effectClass = '';
+                if (item.mutation && !this.isOnline) {
+                    const mutation = DB.data.availableMutations[item.mutation];
+                    if (mutation && mutation.effect) {
+                        effectClass = ' mutation-' + mutation.effect;
+                    }
+                }
+                
+                itemsHtml += '<div class="item-card' + effectClass + '" data-id="' + item.uniqueId + '" data-value="' + itemValue + '" onclick="App.toggleItem(this,\'create\')">' +
                     '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                     '<div class="name">' + item.name + '</div>' +
-                    '<div class="value">' + item.value + ' 💎</div>' +
+                    '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                     '</div>';
             }
         }
@@ -1000,10 +1164,20 @@ const App = {
         } else {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
-                itemsHtml += '<div class="item-card" data-id="' + item.uniqueId + '" data-value="' + item.value + '" onclick="App.toggleItem(this,\'join\')">' +
+                const itemValue = item.finalValue || item.value || 0;
+                
+                let effectClass = '';
+                if (item.mutation && !this.isOnline) {
+                    const mutation = DB.data.availableMutations[item.mutation];
+                    if (mutation && mutation.effect) {
+                        effectClass = ' mutation-' + mutation.effect;
+                    }
+                }
+                
+                itemsHtml += '<div class="item-card' + effectClass + '" data-id="' + item.uniqueId + '" data-value="' + itemValue + '" onclick="App.toggleItem(this,\'join\')">' +
                     '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                     '<div class="name">' + item.name + '</div>' +
-                    '<div class="value">' + item.value + ' 💎</div>' +
+                    '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                     '</div>';
             }
         }
