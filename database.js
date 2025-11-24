@@ -29,7 +29,7 @@ const DB = {
             this.data.users['Brainflip'] = {
                 id: 'usr_admin_brainflip',
                 username: 'Brainflip',
-                password: 'Beluga.2009',
+                password: 'admin123',
                 robloxId: '1',
                 verified: true,
                 isAdmin: true,
@@ -65,7 +65,25 @@ const DB = {
         return {
             users: {},
             items: {
-                dragon_canneloni: { id: "dragon_canneloni", name: "Dragon canneloni", value: 5000, icon: "item_assets/Dragoncanneloni.png" }
+                dragon_canneloni: { 
+                    id: "dragon_canneloni", 
+                    name: "Dragon canneloni", 
+                    baseValue: 5000, // Valeur de base
+                    icon: "item_assets/Dragoncanneloni.png",
+                    rarity: "legendary"
+                }
+            },
+            rarities: ["common", "rare", "epic", "legendary", "mythic"],
+            // Traits avec multiplicateurs (peut être > 1 ou < 1)
+            availableTraits: {
+                shiny: { name: "Shiny", multiplier: 1.5, color: "#ffd700" },
+                cursed: { name: "Cursed", multiplier: 0.5, color: "#8b008b" }, // Divise par 2
+                blessed: { name: "Blessed", multiplier: 2.0, color: "#00ff00" },
+                golden: { name: "Golden", multiplier: 3.0, color: "#ffaa00" },
+                rainbow: { name: "Rainbow", multiplier: 5.0, color: "#ff00ff" },
+                corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }, // Divise par 4
+                divine: { name: "Divine", multiplier: 10.0, color: "#ffffff" },
+                broken: { name: "Broken", multiplier: 0.1, color: "#666666" } // Divise par 10
             }
         };
     },
@@ -237,6 +255,11 @@ const DB = {
             return c.id !== coinflipId;
         });
 
+        // Ajouter winner et winnerSide pour l'historique
+        cf.winner = winner;
+        cf.winnerSide = winnerSide;
+        cf.finishedAt = new Date().toISOString();
+
         this.shared.coinflipsHistory.unshift(cf);
         if (this.shared.coinflipsHistory.length > 50) {
             this.shared.coinflipsHistory = this.shared.coinflipsHistory.slice(0, 50);
@@ -333,6 +356,48 @@ const DB = {
 
     getAllItems() {
         return Object.values(this.data.items);
+    },
+
+    calculateItemValue(item) {
+        // Utiliser baseValue de l'item de base
+        const baseItem = this.data.items[item.id];
+        let finalValue = item.baseValue || baseItem.baseValue || item.value || 1000;
+        
+        // Appliquer les traits (multiplicateurs)
+        if (item.traits && item.traits.length > 0) {
+            for (let i = 0; i < item.traits.length; i++) {
+                const traitKey = item.traits[i];
+                const trait = this.data.availableTraits[traitKey];
+                if (trait && trait.multiplier) {
+                    finalValue *= trait.multiplier;
+                }
+            }
+        }
+        
+        return Math.floor(finalValue);
+    },
+
+    addItemToUser(username, itemData) {
+        const user = this.data.users[username];
+        if (!user) return false;
+        
+        // Créer l'item avec traits
+        const newItem = {
+            uniqueId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            id: itemData.itemId,
+            name: itemData.name || this.data.items[itemData.itemId].name,
+            baseValue: itemData.baseValue || this.data.items[itemData.itemId].baseValue,
+            icon: this.data.items[itemData.itemId].icon,
+            rarity: itemData.rarity || this.data.items[itemData.itemId].rarity,
+            traits: itemData.traits || []
+        };
+        
+        // Calculer la valeur finale avec traits
+        newItem.value = this.calculateItemValue(newItem);
+        
+        user.inventory.push(newItem);
+        this.save();
+        return true;
     },
 
     getAllUsers() {

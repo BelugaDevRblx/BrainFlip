@@ -562,13 +562,22 @@ const App = {
             '<button class="modal-btn" style="background:var(--accent-red);" onclick="App.adminWipeAll()">WIPE EVERYTHING</button>' +
             '</div>' +
             '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
-            '<h3 style="margin-bottom:1.5rem;">➕ Add Items to User</h3>' +
-            '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username">' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">' +
-            '<select class="modal-input" id="adminAddItem"></select>' +
-            '<input type="number" class="modal-input" id="adminAddQty" value="1" min="1">' +
+            '<h3 style="margin-bottom:1.5rem;">➕ Add Item with Traits</h3>' +
+            '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username" style="margin-bottom:1rem;">' +
+            '<select class="modal-input" id="adminAddItem" style="margin-bottom:1rem;"></select>' +
+            '<input type="number" class="modal-input" id="adminAddBaseValue" placeholder="Base Value (optional)" style="margin-bottom:1rem;">' +
+            '<select class="modal-input" id="adminAddRarity" style="margin-bottom:1rem;">' +
+            '<option value="common">Common</option>' +
+            '<option value="rare">Rare</option>' +
+            '<option value="epic">Epic</option>' +
+            '<option value="legendary" selected>Legendary</option>' +
+            '<option value="mythic">Mythic</option>' +
+            '</select>' +
+            '<div style="background:var(--bg-tertiary);padding:1rem;border-radius:8px;margin-bottom:1rem;">' +
+            '<div style="font-weight:600;margin-bottom:0.5rem;">Traits/Mutations:</div>' +
+            '<div id="adminTraitsContainer" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;"></div>' +
             '</div>' +
-            '<button class="modal-btn" onclick="App.adminAddItem()">Add Items</button>' +
+            '<button class="modal-btn" onclick="App.adminAddItemWithTraits()">Add Item</button>' +
             '</div>' +
             '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;">' +
             '<h3 style="margin-bottom:1.5rem;">👥 All Users</h3>' +
@@ -1282,7 +1291,12 @@ const App = {
         container.scrollTop = container.scrollHeight;
 
         const onlineCount = document.getElementById('onlineCount');
-        if (onlineCount) onlineCount.textContent = Math.floor(Math.random() * 100) + 20;
+        if (onlineCount) {
+            const realOnline = this.isOnline 
+                ? 1 // Mode online = 1 (à implémenter avec realtime presence)
+                : Object.keys(DB.data.users).length;
+            onlineCount.textContent = realOnline;
+        }
     },
 
     formatTime(ts) {
@@ -1340,9 +1354,32 @@ const App = {
         if (select) {
             let html = '';
             for (let i = 0; i < items.length; i++) {
-                html += '<option value="' + items[i].id + '">' + items[i].icon + ' ' + items[i].name + '</option>';
+                html += '<option value="' + items[i].id + '">' + items[i].name + '</option>';
             }
             select.innerHTML = html;
+        }
+
+        // Charger les traits disponibles
+        const traitsContainer = document.getElementById('adminTraitsContainer');
+        if (traitsContainer) {
+            const availableTraits = this.isOnline
+                ? {} // À implémenter pour Supabase
+                : DB.data.availableTraits;
+                
+            let html = '';
+            for (const traitKey in availableTraits) {
+                const trait = availableTraits[traitKey];
+                const multiplierText = trait.multiplier >= 1 
+                    ? 'x' + trait.multiplier 
+                    : '÷' + (1 / trait.multiplier);
+                    
+                html += '<label style="display:flex;align-items:center;gap:0.5rem;padding:0.5rem;background:var(--bg-primary);border-radius:6px;cursor:pointer;">' +
+                    '<input type="checkbox" value="' + traitKey + '" class="admin-trait-checkbox">' +
+                    '<span style="color:' + trait.color + ';">' + trait.name + '</span>' +
+                    '<span style="font-size:0.85rem;color:var(--text-secondary);">(' + multiplierText + ')</span>' +
+                    '</label>';
+            }
+            traitsContainer.innerHTML = html;
         }
 
         const users = this.isOnline
@@ -1372,16 +1409,25 @@ const App = {
         }
     },
 
-    async adminAddItem() {
+    async adminAddItemWithTraits() {
         const usernameEl = document.getElementById('adminAddUsername');
         const itemIdEl = document.getElementById('adminAddItem');
-        const qtyEl = document.getElementById('adminAddQty');
+        const baseValueEl = document.getElementById('adminAddBaseValue');
+        const rarityEl = document.getElementById('adminAddRarity');
+        const traitCheckboxes = document.querySelectorAll('.admin-trait-checkbox:checked');
 
-        if (!usernameEl || !itemIdEl || !qtyEl) return;
+        if (!usernameEl || !itemIdEl) return;
 
         const username = usernameEl.value.trim();
         const itemId = itemIdEl.value;
-        const qty = parseInt(qtyEl.value) || 1;
+        const baseValue = parseInt(baseValueEl.value) || null;
+        const rarity = rarityEl.value;
+        
+        // Récupérer les traits sélectionnés
+        const traits = [];
+        for (let i = 0; i < traitCheckboxes.length; i++) {
+            traits.push(traitCheckboxes[i].value);
+        }
 
         if (!username) {
             this.showToast('Enter username!', 'error');
@@ -1397,15 +1443,43 @@ const App = {
             return;
         }
 
-        if (this.isOnline) {
-            await SupaDB.addItemToUser(username, itemId, qty);
+        const itemData = {
+            itemId: itemId,
+            baseValue: baseValue,
+            rarity: rarity,
+            traits: traits
+        };
+
+        const success = this.isOnline
+            ? await SupaDB.addItemToUser(username, itemData)
+            : DB.addItemToUser(username, itemData);
+            
+        if (success) {
+            // Calculer valeur finale pour affichage
+            let finalValue = baseValue || 5000;
+            const availableTraits = DB.data.availableTraits;
+            for (let i = 0; i < traits.length; i++) {
+                const trait = availableTraits[traits[i]];
+                if (trait) finalValue *= trait.multiplier;
+            }
+            
+            this.showToast('Item added! Final value: ' + this.formatNumber(Math.floor(finalValue)) + ' 💎', 'success');
+            usernameEl.value = '';
+            if (baseValueEl) baseValueEl.value = '';
+            
+            // Décocher les traits
+            const allCheckboxes = document.querySelectorAll('.admin-trait-checkbox');
+            for (let i = 0; i < allCheckboxes.length; i++) {
+                allCheckboxes[i].checked = false;
+            }
         } else {
-            DB.addItemToUser(username, itemId, qty);
+            this.showToast('Failed to add item!', 'error');
         }
-        
-        this.showToast('Added ' + qty + 'x to ' + username, 'success');
-        usernameEl.value = '';
-        this.loadAdminPanel();
+    },
+
+    async adminAddItem() {
+        // Ancienne fonction - rediriger vers la nouvelle
+        return this.adminAddItemWithTraits();
     },
 
     closeModal(modalId) {
