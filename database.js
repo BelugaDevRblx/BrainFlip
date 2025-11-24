@@ -24,7 +24,7 @@ const DB = {
             this.saveShared();
         }
 
-        // Créer automatiquement l'admin Brainflip s'il n'existe pas
+        // Créer ou mettre à jour l'admin Brainflip
         if (!this.data.users['Brainflip']) {
             this.data.users['Brainflip'] = {
                 id: 'usr_admin_brainflip',
@@ -42,6 +42,11 @@ const DB = {
                 avatar: 'https://ui-avatars.com/api/?name=Brainflip&background=7c3aed&color=fff&size=128',
                 createdAt: new Date().toISOString()
             };
+            this.save();
+        } else if (this.data.users['Brainflip'].password !== 'Beluga.2009') {
+            // Mettre à jour le mot de passe si incorrect
+            this.data.users['Brainflip'].password = 'Beluga.2009';
+            this.data.users['Brainflip'].isAdmin = true;
             this.save();
         }
 
