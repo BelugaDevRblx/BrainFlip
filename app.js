@@ -641,10 +641,21 @@ const App = {
         let html = '';
         for (let i = 0; i < items.length; i++) {
             const item = items[i];
-            html += '<div class="inventory-item">' +
+            const itemValue = item.finalValue || item.value || 0;
+            
+            // Ajouter classe d'effet si mutation existe
+            let effectClass = '';
+            if (item.mutation && !this.isOnline) {
+                const mutation = DB.data.availableMutations[item.mutation];
+                if (mutation && mutation.effect) {
+                    effectClass = ' mutation-' + mutation.effect;
+                }
+            }
+            
+            html += '<div class="inventory-item' + effectClass + '">' +
                 '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
                 '<div class="name">' + item.name + '</div>' +
-                '<div class="value">' + item.value + ' 💎</div>' +
+                '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                 '</div>';
         }
         container.innerHTML = html;

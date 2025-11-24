@@ -126,25 +126,6 @@ const DB = {
         return user;
     },
 
-    addItemToUser(username, itemId, qty) {
-        if (!qty) qty = 1;
-        const user = this.data.users[username];
-        const item = this.data.items[itemId];
-        if (!user || !item) return false;
-
-        for (let i = 0; i < qty; i++) {
-            user.inventory.push({
-                id: item.id,
-                name: item.name,
-                value: item.value,
-                icon: item.icon,
-                uniqueId: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            });
-        }
-        this.save();
-        return true;
-    },
-
     removeItemsFromUser(username, uniqueIds) {
         const user = this.data.users[username];
         if (!user) return false;
@@ -158,7 +139,9 @@ const DB = {
     getUserBalance(username) {
         const user = this.data.users[username];
         if (!user) return 0;
-        return user.inventory.reduce(function(sum, item) { return sum + item.value; }, 0);
+        return user.inventory.reduce(function(sum, item) { 
+            return sum + (item.finalValue || item.value || 0); 
+        }, 0);
     },
 
     createCoinflip(creatorUsername, items, side) {
