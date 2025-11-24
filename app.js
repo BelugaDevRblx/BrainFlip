@@ -1396,19 +1396,61 @@ const App = {
         
         let creatorItemsHtml = '';
         for (let i = 0; i < creatorItems.length; i++) {
-            creatorItemsHtml += '<div class="bloxyx-item">' +
-                '<img src="' + creatorItems[i].icon + '">' +
-                '<div class="item-name">' + creatorItems[i].name + '</div>' +
-                '<div class="item-value">B$' + this.formatNumber(creatorItems[i].value / 1000) + '</div>' +
+            const item = creatorItems[i];
+            const itemValue = item.finalValue || item.value || 0;
+            
+            let effectClass = '';
+            if (item.mutation) {
+                const mutationEffects = {
+                    rainbow: 'rainbow-glow',
+                    lava: 'lava-glow',
+                    galaxy: 'galaxy-glow',
+                    yinyang: 'yinyang-glow',
+                    gold: 'gold-glow',
+                    diamond: 'diamond-glow',
+                    bloodrot: 'bloodrot-glow',
+                    candy: 'candy-glow',
+                    radioactive: 'radioactive-glow'
+                };
+                if (mutationEffects[item.mutation]) {
+                    effectClass = ' mutation-' + mutationEffects[item.mutation];
+                }
+            }
+            
+            creatorItemsHtml += '<div class="bloxyx-item' + effectClass + '">' +
+                '<img src="' + item.icon + '">' +
+                '<div class="item-name">' + item.name + '</div>' +
+                '<div class="item-value">B$' + this.formatNumber(itemValue / 1000) + '</div>' +
                 '</div>';
         }
 
         let opponentItemsHtml = '';
         for (let i = 0; i < opponentItems.length; i++) {
-            opponentItemsHtml += '<div class="bloxyx-item">' +
-                '<img src="' + opponentItems[i].icon + '">' +
-                '<div class="item-name">' + opponentItems[i].name + '</div>' +
-                '<div class="item-value">B$' + this.formatNumber(opponentItems[i].value / 1000) + '</div>' +
+            const item = opponentItems[i];
+            const itemValue = item.finalValue || item.value || 0;
+            
+            let effectClass = '';
+            if (item.mutation) {
+                const mutationEffects = {
+                    rainbow: 'rainbow-glow',
+                    lava: 'lava-glow',
+                    galaxy: 'galaxy-glow',
+                    yinyang: 'yinyang-glow',
+                    gold: 'gold-glow',
+                    diamond: 'diamond-glow',
+                    bloodrot: 'bloodrot-glow',
+                    candy: 'candy-glow',
+                    radioactive: 'radioactive-glow'
+                };
+                if (mutationEffects[item.mutation]) {
+                    effectClass = ' mutation-' + mutationEffects[item.mutation];
+                }
+            }
+            
+            opponentItemsHtml += '<div class="bloxyx-item' + effectClass + '">' +
+                '<img src="' + item.icon + '">' +
+                '<div class="item-name">' + item.name + '</div>' +
+                '<div class="item-value">B$' + this.formatNumber(itemValue / 1000) + '</div>' +
                 '</div>';
         }
 
@@ -1714,6 +1756,17 @@ const App = {
         if (addedItem) {
             this.showToast('Item added! Value: ' + this.formatNumber(addedItem.finalValue) + ' 💎', 'success');
             usernameEl.value = '';
+            
+            // Recharger l'inventaire de l'user si c'est le current user
+            if (username === this.currentUser.username) {
+                if (this.isOnline) {
+                    const user = await SupaDB.getUser(username);
+                    this.currentUser.inventory = user.inventory || [];
+                } else {
+                    this.currentUser = DB.getUser(username);
+                }
+                this.renderInventory();
+            }
             
             // Décocher les traits
             const allCheckboxes = document.querySelectorAll('.admin-trait-checkbox');

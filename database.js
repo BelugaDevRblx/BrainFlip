@@ -215,6 +215,11 @@ const DB = {
         const cf = this.getCoinflip(coinflipId);
         if (!cf || cf.status !== 'playing') return null;
 
+        // Si le coinflip a déjà un winner stocké, le retourner
+        if (cf.winner && cf.winnerSide) {
+            return { winner: cf.winner, winnerSide: cf.winnerSide };
+        }
+
         // DÉTERMINER LE GAGNANT ICI (une seule fois)
         if (!winnerSide) {
             winnerSide = Math.random() < 0.5 ? cf.creatorSide : (cf.creatorSide === 'H' ? 'T' : 'H');
@@ -222,6 +227,10 @@ const DB = {
 
         const winner = winnerSide === cf.creatorSide ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
+
+        // Stocker le winner dans le coinflip AVANT de le supprimer
+        cf.winner = winner;
+        cf.winnerSide = winnerSide;
 
         // Donner items au gagnant
         const allItems = [];
@@ -254,15 +263,20 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
-        // SUPPRIMER IMMÉDIATEMENT
-        this.shared.coinflips = this.shared.coinflips.filter(function(c) {
-            return c.id !== coinflipId;
-        });
-
-        // Ajouter winner et winnerSide pour l'historique
-        cf.winner = winner;
-        cf.winnerSide = winnerSide;
+        // Marquer comme finished au lieu de supprimer immédiatement
+        cf.status = 'finished';
         cf.finishedAt = new Date().toISOString();
+
+        // Supprimer après 5 secondes
+        const self = this;
+        setTimeout(function() {
+            self.shared.coinflips = self.shared.coinflips.filter(function(c) {
+                return c.id !== coinflipId;
+            });
+            self.saveShared();
+        }, 5000);
+
+        // Ajouter à l'historique
 
         this.shared.coinflipsHistory.unshift(cf);
         if (this.shared.coinflipsHistory.length > 50) {
