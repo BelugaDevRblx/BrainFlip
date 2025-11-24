@@ -640,10 +640,20 @@ const App = {
             
             // Ajouter classe d'effet si mutation existe
             let effectClass = '';
-            if (item.mutation && !this.isOnline) {
-                const mutation = DB.data.availableMutations[item.mutation];
-                if (mutation && mutation.effect) {
-                    effectClass = ' mutation-' + mutation.effect;
+            if (item.mutation) {
+                const mutationEffects = {
+                    rainbow: 'rainbow-glow',
+                    lava: 'lava-glow',
+                    galaxy: 'galaxy-glow',
+                    yinyang: 'yinyang-glow',
+                    gold: 'gold-glow',
+                    diamond: 'diamond-glow',
+                    bloodrot: 'bloodrot-glow',
+                    candy: 'candy-glow',
+                    radioactive: 'radioactive-glow'
+                };
+                if (mutationEffects[item.mutation]) {
+                    effectClass = ' mutation-' + mutationEffects[item.mutation];
                 }
             }
             
@@ -1093,10 +1103,20 @@ const App = {
                 const itemValue = item.finalValue || item.value || 0;
                 
                 let effectClass = '';
-                if (item.mutation && !this.isOnline) {
-                    const mutation = DB.data.availableMutations[item.mutation];
-                    if (mutation && mutation.effect) {
-                        effectClass = ' mutation-' + mutation.effect;
+                if (item.mutation) {
+                    const mutationEffects = {
+                        rainbow: 'rainbow-glow',
+                        lava: 'lava-glow',
+                        galaxy: 'galaxy-glow',
+                        yinyang: 'yinyang-glow',
+                        gold: 'gold-glow',
+                        diamond: 'diamond-glow',
+                        bloodrot: 'bloodrot-glow',
+                        candy: 'candy-glow',
+                        radioactive: 'radioactive-glow'
+                    };
+                    if (mutationEffects[item.mutation]) {
+                        effectClass = ' mutation-' + mutationEffects[item.mutation];
                     }
                 }
                 
@@ -1167,10 +1187,20 @@ const App = {
                 const itemValue = item.finalValue || item.value || 0;
                 
                 let effectClass = '';
-                if (item.mutation && !this.isOnline) {
-                    const mutation = DB.data.availableMutations[item.mutation];
-                    if (mutation && mutation.effect) {
-                        effectClass = ' mutation-' + mutation.effect;
+                if (item.mutation) {
+                    const mutationEffects = {
+                        rainbow: 'rainbow-glow',
+                        lava: 'lava-glow',
+                        galaxy: 'galaxy-glow',
+                        yinyang: 'yinyang-glow',
+                        gold: 'gold-glow',
+                        diamond: 'diamond-glow',
+                        bloodrot: 'bloodrot-glow',
+                        candy: 'candy-glow',
+                        radioactive: 'radioactive-glow'
+                    };
+                    if (mutationEffects[item.mutation]) {
+                        effectClass = ' mutation-' + mutationEffects[item.mutation];
                     }
                 }
                 
@@ -1323,6 +1353,12 @@ const App = {
     },
 
     async startCoinflipAnimation(cf) {
+        // EMPÊCHER DOUBLE ANIMATION
+        if (document.getElementById('cfAnimationModal')) {
+            console.log('Animation already running, skipping...');
+            return;
+        }
+
         const cfId = this.isOnline ? cf.id : cf.id;
 
         const creator = this.isOnline ? cf.creator : cf.creator;
@@ -1343,11 +1379,11 @@ const App = {
 
         let creatorTotal = 0;
         for (let i = 0; i < creatorItems.length; i++) {
-            creatorTotal += creatorItems[i].value;
+            creatorTotal += creatorItems[i].finalValue || creatorItems[i].value || 0;
         }
         let opponentTotal = 0;
         for (let i = 0; i < opponentItems.length; i++) {
-            opponentTotal += opponentItems[i].value;
+            opponentTotal += opponentItems[i].finalValue || opponentItems[i].value || 0;
         }
 
         const modal = document.createElement('div');
@@ -1545,8 +1581,15 @@ const App = {
 
         // Charger les TRAITS (checkboxes - multiple)
         const traitsContainer = document.getElementById('adminTraitsContainer');
-        if (traitsContainer && !this.isOnline) {
-            const availableTraits = DB.data.availableTraits;
+        if (traitsContainer) {
+            const availableTraits = this.isOnline 
+                ? {
+                    shiny: { name: "Shiny", multiplier: 1.5, color: "#ffd700" },
+                    blessed: { name: "Blessed", multiplier: 2.0, color: "#00ff00" },
+                    cursed: { name: "Cursed", multiplier: 0.5, color: "#8b008b" },
+                    corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }
+                }
+                : DB.data.availableTraits;
             let html = '';
             for (const traitKey in availableTraits) {
                 const trait = availableTraits[traitKey];
@@ -1565,8 +1608,20 @@ const App = {
         
         // Charger les MUTATIONS (select - un seul)
         const mutationSelect = document.getElementById('adminAddMutation');
-        if (mutationSelect && !this.isOnline) {
-            const availableMutations = DB.data.availableMutations;
+        if (mutationSelect) {
+            const availableMutations = this.isOnline
+                ? {
+                    rainbow: { name: "Rainbow", multiplier: 2.0, effect: "rainbow-glow" },
+                    lava: { name: "Lava", multiplier: 3.0, effect: "lava-glow" },
+                    galaxy: { name: "Galaxy", multiplier: 4.0, effect: "galaxy-glow" },
+                    yinyang: { name: "YinYang", multiplier: 2.5, effect: "yinyang-glow" },
+                    gold: { name: "Gold", multiplier: 5.0, effect: "gold-glow" },
+                    diamond: { name: "Diamond", multiplier: 10.0, effect: "diamond-glow" },
+                    bloodrot: { name: "Bloodrot", multiplier: 0.1, effect: "bloodrot-glow" },
+                    candy: { name: "Candy", multiplier: 1.5, effect: "candy-glow" },
+                    radioactive: { name: "Radioactive", multiplier: 7.0, effect: "radioactive-glow" }
+                }
+                : DB.data.availableMutations;
             let html = '<option value="">None</option>';
             for (const mutKey in availableMutations) {
                 const mut = availableMutations[mutKey];
