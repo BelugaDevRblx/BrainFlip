@@ -416,7 +416,10 @@ const App = {
         }
         else if (page === 'admin') {
             content.innerHTML = this.getAdminHTML();
-            this.loadAdminPanel();
+            // Attendre que le DOM soit prêt
+            setTimeout(() => {
+                this.loadAdminPanel();
+            }, 100);
         }
 
         document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -1581,6 +1584,7 @@ const App = {
 
         // Charger les TRAITS (checkboxes - multiple)
         const traitsContainer = document.getElementById('adminTraitsContainer');
+        console.log('Traits container:', traitsContainer);
         if (traitsContainer) {
             const availableTraits = this.isOnline 
                 ? {
@@ -1590,6 +1594,7 @@ const App = {
                     corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }
                 }
                 : DB.data.availableTraits;
+            console.log('Available traits:', availableTraits);
             let html = '';
             for (const traitKey in availableTraits) {
                 const trait = availableTraits[traitKey];
@@ -1603,11 +1608,13 @@ const App = {
                     '<span style="font-size:0.85rem;color:var(--text-secondary);">(' + multiplierText + ')</span>' +
                     '</label>';
             }
+            console.log('Traits HTML:', html);
             traitsContainer.innerHTML = html;
         }
         
         // Charger les MUTATIONS (select - un seul)
         const mutationSelect = document.getElementById('adminAddMutation');
+        console.log('Mutation select:', mutationSelect);
         if (mutationSelect) {
             const availableMutations = this.isOnline
                 ? {
@@ -1622,6 +1629,7 @@ const App = {
                     radioactive: { name: "Radioactive", multiplier: 7.0, effect: "radioactive-glow" }
                 }
                 : DB.data.availableMutations;
+            console.log('Available mutations:', availableMutations);
             let html = '<option value="">None</option>';
             for (const mutKey in availableMutations) {
                 const mut = availableMutations[mutKey];
@@ -1630,6 +1638,7 @@ const App = {
                     : '÷' + (1 / mut.multiplier);
                 html += '<option value="' + mutKey + '">' + mut.name + ' (' + multiplierText + ')</option>';
             }
+            console.log('Mutations HTML:', html);
             mutationSelect.innerHTML = html;
         }
 
