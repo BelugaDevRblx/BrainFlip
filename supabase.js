@@ -389,7 +389,15 @@ const SupaDB = {
 
     async finishCoinflip(coinflipId, winnerSide) {
         const cf = await this.getCoinflip(coinflipId);
-        if (!cf || cf.status !== 'playing') return null;
+        if (!cf) return null;
+
+        // Si le coinflip a déjà un winner stocké, le retourner
+        if (cf.winner && cf.winner_side) {
+            return { winner: cf.winner, winner_side: cf.winner_side };
+        }
+
+        // Vérifier que le coinflip est en cours
+        if (cf.status !== 'playing') return null;
 
         // DÉTERMINER LE GAGNANT ICI (une seule fois)
         if (!winnerSide) {
@@ -398,6 +406,16 @@ const SupaDB = {
 
         const winner = winnerSide === cf.creator_side ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
+
+        // Stocker le winner dans le coinflip
+        await supabase
+            .from('coinflips')
+            .update({ 
+                winner: winner, 
+                winner_side: winnerSide,
+                status: 'finished'
+            })
+            .eq('id', coinflipId);
 
         // Donner items au gagnant
         const allItems = [...cf.creator_items, ...cf.opponent_items];
@@ -431,11 +449,13 @@ const SupaDB = {
             });
         }
 
-        // SUPPRIMER IMMÉDIATEMENT
-        await supabase
-            .from('coinflips')
-            .delete()
-            .eq('id', coinflipId);
+        // Supprimer après 5 secondes
+        setTimeout(async () => {
+            await supabase
+                .from('coinflips')
+                .delete()
+                .eq('id', coinflipId);
+        }, 5000);
 
         return { winner: winner, winner_side: winnerSide };
     },

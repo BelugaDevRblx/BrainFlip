@@ -213,12 +213,15 @@ const DB = {
 
     finishCoinflip(coinflipId, winnerSide) {
         const cf = this.getCoinflip(coinflipId);
-        if (!cf || cf.status !== 'playing') return null;
+        if (!cf) return null;
 
-        // Si le coinflip a déjà un winner stocké, le retourner
+        // Si le coinflip a déjà un winner stocké, le retourner (même si status = finished)
         if (cf.winner && cf.winnerSide) {
             return { winner: cf.winner, winnerSide: cf.winnerSide };
         }
+
+        // Vérifier que le coinflip est en cours
+        if (cf.status !== 'playing') return null;
 
         // DÉTERMINER LE GAGNANT ICI (une seule fois)
         if (!winnerSide) {
@@ -228,7 +231,7 @@ const DB = {
         const winner = winnerSide === cf.creatorSide ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
 
-        // Stocker le winner dans le coinflip AVANT de le supprimer
+        // Stocker le winner dans le coinflip AVANT tout traitement
         cf.winner = winner;
         cf.winnerSide = winnerSide;
 
