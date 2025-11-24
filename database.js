@@ -155,7 +155,9 @@ const DB = {
         const creator = this.data.users[creatorUsername];
         if (!creator) return null;
 
-        const totalValue = items.reduce(function(sum, item) { return sum + item.value; }, 0);
+        const totalValue = items.reduce(function(sum, item) { 
+            return sum + (item.finalValue || item.value || 0); 
+        }, 0);
         const coinflip = {
             id: 'cf_' + Date.now(),
             creator: creatorUsername,

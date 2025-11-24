@@ -195,28 +195,75 @@ const SupaDB = {
         return user.inventory.reduce((sum, item) => sum + item.value, 0);
     },
 
-    async addItemToUser(username, itemId, qty = 1) {
+    async addItemToUser(username, itemData) {
         const user = await this.getUser(username);
         if (!user) return false;
 
+        // Si itemData est juste un string (ancien format), convertir
+        if (typeof itemData === 'string') {
+            itemData = { itemId: itemData, traits: [], mutation: null };
+        }
+
         const items = await this.getAllItems();
-        const item = items.find(i => i.id === itemId);
-        if (!item) return false;
+        const baseItem = items.find(i => i.id === itemData.itemId);
+        if (!baseItem) return false;
 
         const inventory = user.inventory || [];
-        for (let i = 0; i < qty; i++) {
-            inventory.push({
-                ...item,
-                uniqueId: 'inv_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9)
-            });
+        
+        // Créer le nouvel item avec traits et mutation
+        const newItem = {
+            uniqueId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            id: baseItem.id,
+            name: baseItem.name,
+            value: baseItem.value,
+            icon: baseItem.icon,
+            traits: itemData.traits || [],
+            mutation: itemData.mutation || null
+        };
+        
+        // Calculer finalValue (côté client pour l'instant)
+        // TODO: Implémenter calculateItemValue côté Supabase
+        let finalValue = newItem.value;
+        if (itemData.traits && itemData.traits.length > 0) {
+            // Multiplier par traits (hardcodé pour l'instant)
+            const traitMultipliers = {
+                shiny: 1.5,
+                blessed: 2.0,
+                cursed: 0.5,
+                corrupted: 0.25
+            };
+            for (let i = 0; i < itemData.traits.length; i++) {
+                if (traitMultipliers[itemData.traits[i]]) {
+                    finalValue *= traitMultipliers[itemData.traits[i]];
+                }
+            }
         }
+        if (itemData.mutation) {
+            const mutationMultipliers = {
+                rainbow: 2.0,
+                lava: 3.0,
+                galaxy: 4.0,
+                yinyang: 2.5,
+                gold: 5.0,
+                diamond: 10.0,
+                bloodrot: 0.1,
+                candy: 1.5,
+                radioactive: 7.0
+            };
+            if (mutationMultipliers[itemData.mutation]) {
+                finalValue *= mutationMultipliers[itemData.mutation];
+            }
+        }
+        newItem.finalValue = Math.floor(finalValue);
+        
+        inventory.push(newItem);
 
         const { error } = await supabase
             .from('users')
             .update({ inventory: inventory })
             .eq('username', username);
 
-        return !error;
+        return error ? false : newItem;
     },
 
     async removeItemsFromUser(username, uniqueIds) {
@@ -238,7 +285,7 @@ const SupaDB = {
         const creator = await this.getUser(creatorUsername);
         if (!creator) return null;
 
-        const totalValue = items.reduce((sum, item) => sum + item.value, 0);
+        const totalValue = items.reduce((sum, item) => sum + (item.finalValue || item.value || 0), 0);
         
         const coinflip = {
             creator: creatorUsername,
@@ -482,8 +529,12 @@ const SupaDB = {
     // ITEMS
     async getAllItems() {
         return [
-            { id: "dragon_canneloni", name: "Dragon canneloni", value: 5000, icon: "item_assets/Dragoncanneloni.png" }
-    
+            { 
+                id: "dragon_canneloni", 
+                name: "Dragon canneloni", 
+                value: 5000, 
+                icon: "item_assets/Dragoncanneloni.png"
+            }
         ];
     },
 

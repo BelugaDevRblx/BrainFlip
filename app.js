@@ -1217,7 +1217,7 @@ const App = {
 
         let total = 0;
         for (let i = 0; i < this.selectedItems.length; i++) {
-            total += this.selectedItems[i].value;
+            total += this.selectedItems[i].finalValue || this.selectedItems[i].value || 0;
         }
         
         const totalEl = document.getElementById(modalType === 'create' ? 'createTotal' : 'joinTotal');
