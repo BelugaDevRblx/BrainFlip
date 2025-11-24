@@ -7,6 +7,7 @@ const App = {
     coinflipSubscription: null,
     isCreatingCoinflip: false,
     isJoiningCoinflip: false,
+    lastChatTime: 0,
 
     async init() {
         this.isOnline = typeof SupaDB !== 'undefined';
@@ -562,10 +563,9 @@ const App = {
             '<button class="modal-btn" style="background:var(--accent-red);" onclick="App.adminWipeAll()">WIPE EVERYTHING</button>' +
             '</div>' +
             '<div style="background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:20px;padding:2rem;margin-bottom:1.5rem;">' +
-            '<h3 style="margin-bottom:1.5rem;">➕ Add Item with Traits</h3>' +
+            '<h3 style="margin-bottom:1.5rem;">➕ Add Item with Traits & Mutation</h3>' +
             '<input type="text" class="modal-input" id="adminAddUsername" placeholder="Username" style="margin-bottom:1rem;">' +
             '<select class="modal-input" id="adminAddItem" style="margin-bottom:1rem;"></select>' +
-            '<input type="number" class="modal-input" id="adminAddBaseValue" placeholder="Base Value (optional)" style="margin-bottom:1rem;">' +
             '<select class="modal-input" id="adminAddRarity" style="margin-bottom:1rem;">' +
             '<option value="common">Common</option>' +
             '<option value="rare">Rare</option>' +
@@ -574,8 +574,14 @@ const App = {
             '<option value="mythic">Mythic</option>' +
             '</select>' +
             '<div style="background:var(--bg-tertiary);padding:1rem;border-radius:8px;margin-bottom:1rem;">' +
-            '<div style="font-weight:600;margin-bottom:0.5rem;">Traits/Mutations:</div>' +
+            '<div style="font-weight:600;margin-bottom:0.5rem;">✨ Traits (Multiple):</div>' +
             '<div id="adminTraitsContainer" style="display:grid;grid-template-columns:repeat(2,1fr);gap:0.5rem;"></div>' +
+            '</div>' +
+            '<div style="background:var(--bg-tertiary);padding:1rem;border-radius:8px;margin-bottom:1rem;">' +
+            '<div style="font-weight:600;margin-bottom:0.5rem;">🔮 Mutation (Only 1):</div>' +
+            '<select class="modal-input" id="adminAddMutation">' +
+            '<option value="">None</option>' +
+            '</select>' +
             '</div>' +
             '<button class="modal-btn" onclick="App.adminAddItemWithTraits()">Add Item</button>' +
             '</div>' +
@@ -1359,13 +1365,10 @@ const App = {
             select.innerHTML = html;
         }
 
-        // Charger les traits disponibles
+        // Charger les TRAITS (checkboxes - multiple)
         const traitsContainer = document.getElementById('adminTraitsContainer');
-        if (traitsContainer) {
-            const availableTraits = this.isOnline
-                ? {} // À implémenter pour Supabase
-                : DB.data.availableTraits;
-                
+        if (traitsContainer && !this.isOnline) {
+            const availableTraits = DB.data.availableTraits;
             let html = '';
             for (const traitKey in availableTraits) {
                 const trait = availableTraits[traitKey];
@@ -1380,6 +1383,21 @@ const App = {
                     '</label>';
             }
             traitsContainer.innerHTML = html;
+        }
+        
+        // Charger les MUTATIONS (select - un seul)
+        const mutationSelect = document.getElementById('adminAddMutation');
+        if (mutationSelect && !this.isOnline) {
+            const availableMutations = DB.data.availableMutations;
+            let html = '<option value="">None</option>';
+            for (const mutKey in availableMutations) {
+                const mut = availableMutations[mutKey];
+                const multiplierText = mut.multiplier >= 1 
+                    ? 'x' + mut.multiplier 
+                    : '÷' + (1 / mut.multiplier);
+                html += '<option value="' + mutKey + '">' + mut.name + ' (' + multiplierText + ')</option>';
+            }
+            mutationSelect.innerHTML = html;
         }
 
         const users = this.isOnline
@@ -1412,16 +1430,16 @@ const App = {
     async adminAddItemWithTraits() {
         const usernameEl = document.getElementById('adminAddUsername');
         const itemIdEl = document.getElementById('adminAddItem');
-        const baseValueEl = document.getElementById('adminAddBaseValue');
         const rarityEl = document.getElementById('adminAddRarity');
+        const mutationEl = document.getElementById('adminAddMutation');
         const traitCheckboxes = document.querySelectorAll('.admin-trait-checkbox:checked');
 
         if (!usernameEl || !itemIdEl) return;
 
         const username = usernameEl.value.trim();
         const itemId = itemIdEl.value;
-        const baseValue = parseInt(baseValueEl.value) || null;
         const rarity = rarityEl.value;
+        const mutation = mutationEl.value || null;
         
         // Récupérer les traits sélectionnés
         const traits = [];
@@ -1445,33 +1463,27 @@ const App = {
 
         const itemData = {
             itemId: itemId,
-            baseValue: baseValue,
             rarity: rarity,
-            traits: traits
+            traits: traits,
+            mutation: mutation
         };
 
-        const success = this.isOnline
+        const addedItem = this.isOnline
             ? await SupaDB.addItemToUser(username, itemData)
             : DB.addItemToUser(username, itemData);
             
-        if (success) {
-            // Calculer valeur finale pour affichage
-            let finalValue = baseValue || 5000;
-            const availableTraits = DB.data.availableTraits;
-            for (let i = 0; i < traits.length; i++) {
-                const trait = availableTraits[traits[i]];
-                if (trait) finalValue *= trait.multiplier;
-            }
-            
-            this.showToast('Item added! Final value: ' + this.formatNumber(Math.floor(finalValue)) + ' 💎', 'success');
+        if (addedItem) {
+            this.showToast('Item added! Value: ' + this.formatNumber(addedItem.finalValue) + ' 💎', 'success');
             usernameEl.value = '';
-            if (baseValueEl) baseValueEl.value = '';
             
             // Décocher les traits
             const allCheckboxes = document.querySelectorAll('.admin-trait-checkbox');
             for (let i = 0; i < allCheckboxes.length; i++) {
                 allCheckboxes[i].checked = false;
             }
+            
+            // Reset mutation
+            if (mutationEl) mutationEl.value = '';
         } else {
             this.showToast('Failed to add item!', 'error');
         }
@@ -1689,6 +1701,13 @@ const App = {
         const input = document.getElementById('chatInput');
         if (!input) return;
 
+        // COOLDOWN 5 SECONDES
+        if (this.lastChatTime && Date.now() - this.lastChatTime < 5000) {
+            const remaining = Math.ceil((5000 - (Date.now() - this.lastChatTime)) / 1000);
+            this.showToast('Wait ' + remaining + 's before sending another message!', 'error');
+            return;
+        }
+
         let msg = input.value.trim();
         if (!msg) return;
 
@@ -1727,6 +1746,9 @@ const App = {
         } else {
             DB.addChatMessage(this.currentUser.username, filtered);
         }
+        
+        // Enregistrer le timestamp du dernier message
+        this.lastChatTime = Date.now();
         
         input.value = '';
         this.loadChat();

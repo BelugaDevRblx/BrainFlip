@@ -2057,3 +2057,95 @@ body {
 .site-footer a:hover {
     text-decoration: underline;
 }
+
+/* Effets visuels pour les Mutations */
+.mutation-rainbow-glow {
+    animation: rainbow-glow 3s infinite;
+    box-shadow: 0 0 20px rgba(255, 0, 255, 0.8);
+}
+
+@keyframes rainbow-glow {
+    0% { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+.mutation-lava-glow {
+    animation: lava-glow 2s infinite;
+    box-shadow: 0 0 30px rgba(255, 69, 0, 0.9);
+}
+
+@keyframes lava-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.5) saturate(1.5); }
+}
+
+.mutation-galaxy-glow {
+    animation: galaxy-glow 4s infinite;
+    box-shadow: 0 0 40px rgba(138, 43, 226, 1);
+}
+
+@keyframes galaxy-glow {
+    0% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.8); }
+    50% { box-shadow: 0 0 50px rgba(75, 0, 130, 1); }
+    100% { box-shadow: 0 0 20px rgba(138, 43, 226, 0.8); }
+}
+
+.mutation-yinyang-glow {
+    animation: yinyang-glow 3s infinite;
+}
+
+@keyframes yinyang-glow {
+    0%, 100% { filter: contrast(1); }
+    50% { filter: contrast(1.5) invert(0.2); }
+}
+
+.mutation-gold-glow {
+    animation: gold-glow 2s infinite;
+    box-shadow: 0 0 35px rgba(255, 215, 0, 1);
+}
+
+@keyframes gold-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.4); }
+}
+
+.mutation-diamond-glow {
+    animation: diamond-glow 1.5s infinite;
+    box-shadow: 0 0 50px rgba(185, 242, 255, 1);
+}
+
+@keyframes diamond-glow {
+    0%, 100% { filter: brightness(1.2) saturate(1.5); }
+    50% { filter: brightness(1.8) saturate(2); }
+}
+
+.mutation-bloodrot-glow {
+    animation: bloodrot-glow 2s infinite;
+    box-shadow: 0 0 25px rgba(139, 0, 0, 0.9);
+}
+
+@keyframes bloodrot-glow {
+    0%, 100% { filter: sepia(0.5) hue-rotate(-20deg); }
+    50% { filter: sepia(0.8) hue-rotate(-20deg) brightness(0.8); }
+}
+
+.mutation-candy-glow {
+    animation: candy-glow 3s infinite;
+    box-shadow: 0 0 30px rgba(255, 105, 180, 0.8);
+}
+
+@keyframes candy-glow {
+    0% { filter: saturate(1.5) hue-rotate(0deg); }
+    50% { filter: saturate(2) hue-rotate(10deg); }
+    100% { filter: saturate(1.5) hue-rotate(0deg); }
+}
+
+.mutation-radioactive-glow {
+    animation: radioactive-glow 1s infinite;
+    box-shadow: 0 0 40px rgba(0, 255, 0, 1);
+}
+
+@keyframes radioactive-glow {
+    0%, 100% { filter: brightness(1.2); opacity: 1; }
+    50% { filter: brightness(1.6); opacity: 0.9; }
+}

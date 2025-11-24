@@ -73,22 +73,29 @@ const DB = {
                 dragon_canneloni: { 
                     id: "dragon_canneloni", 
                     name: "Dragon canneloni", 
-                    baseValue: 5000, // Valeur de base
+                    value: 5000,
                     icon: "item_assets/Dragoncanneloni.png",
                     rarity: "legendary"
                 }
             },
-            rarities: ["common", "rare", "epic", "legendary", "mythic"],
-            // Traits avec multiplicateurs (peut être > 1 ou < 1)
+            // TRAITS - Peut en avoir plusieurs
             availableTraits: {
                 shiny: { name: "Shiny", multiplier: 1.5, color: "#ffd700" },
-                cursed: { name: "Cursed", multiplier: 0.5, color: "#8b008b" }, // Divise par 2
                 blessed: { name: "Blessed", multiplier: 2.0, color: "#00ff00" },
-                golden: { name: "Golden", multiplier: 3.0, color: "#ffaa00" },
-                rainbow: { name: "Rainbow", multiplier: 5.0, color: "#ff00ff" },
-                corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }, // Divise par 4
-                divine: { name: "Divine", multiplier: 10.0, color: "#ffffff" },
-                broken: { name: "Broken", multiplier: 0.1, color: "#666666" } // Divise par 10
+                cursed: { name: "Cursed", multiplier: 0.5, color: "#8b008b" },
+                corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }
+            },
+            // MUTATIONS - Un seul à la fois + Effet visuel
+            availableMutations: {
+                rainbow: { name: "Rainbow", multiplier: 2.0, effect: "rainbow-glow" },
+                lava: { name: "Lava", multiplier: 3.0, effect: "lava-glow" },
+                galaxy: { name: "Galaxy", multiplier: 4.0, effect: "galaxy-glow" },
+                yinyang: { name: "YinYang", multiplier: 2.5, effect: "yinyang-glow" },
+                gold: { name: "Gold", multiplier: 5.0, effect: "gold-glow" },
+                diamond: { name: "Diamond", multiplier: 10.0, effect: "diamond-glow" },
+                bloodrot: { name: "Bloodrot", multiplier: 0.1, effect: "bloodrot-glow" },
+                candy: { name: "Candy", multiplier: 1.5, effect: "candy-glow" },
+                radioactive: { name: "Radioactive", multiplier: 7.0, effect: "radioactive-glow" }
             }
         };
     },
@@ -364,11 +371,10 @@ const DB = {
     },
 
     calculateItemValue(item) {
-        // Utiliser baseValue de l'item de base
         const baseItem = this.data.items[item.id];
-        let finalValue = item.baseValue || baseItem.baseValue || item.value || 1000;
+        let finalValue = item.value || baseItem.value || 1000;
         
-        // Appliquer les traits (multiplicateurs)
+        // Appliquer les TRAITS (peut en avoir plusieurs)
         if (item.traits && item.traits.length > 0) {
             for (let i = 0; i < item.traits.length; i++) {
                 const traitKey = item.traits[i];
@@ -379,6 +385,14 @@ const DB = {
             }
         }
         
+        // Appliquer la MUTATION (un seul)
+        if (item.mutation) {
+            const mutation = this.data.availableMutations[item.mutation];
+            if (mutation && mutation.multiplier) {
+                finalValue *= mutation.multiplier;
+            }
+        }
+        
         return Math.floor(finalValue);
     },
 
@@ -386,23 +400,27 @@ const DB = {
         const user = this.data.users[username];
         if (!user) return false;
         
-        // Créer l'item avec traits
+        const baseItem = this.data.items[itemData.itemId];
+        if (!baseItem) return false;
+        
+        // Créer l'item avec traits et mutation
         const newItem = {
             uniqueId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
             id: itemData.itemId,
-            name: itemData.name || this.data.items[itemData.itemId].name,
-            baseValue: itemData.baseValue || this.data.items[itemData.itemId].baseValue,
-            icon: this.data.items[itemData.itemId].icon,
-            rarity: itemData.rarity || this.data.items[itemData.itemId].rarity,
-            traits: itemData.traits || []
+            name: baseItem.name,
+            value: baseItem.value,
+            icon: baseItem.icon,
+            rarity: itemData.rarity || baseItem.rarity,
+            traits: itemData.traits || [],
+            mutation: itemData.mutation || null
         };
         
-        // Calculer la valeur finale avec traits
-        newItem.value = this.calculateItemValue(newItem);
+        // Calculer la valeur finale avec traits + mutation
+        newItem.finalValue = this.calculateItemValue(newItem);
         
         user.inventory.push(newItem);
         this.save();
-        return true;
+        return newItem;
     },
 
     getAllUsers() {
