@@ -1407,15 +1407,23 @@ const App = {
 
         let selectedTotal = 0;
         for (let i = 0; i < this.selectedItems.length; i++) {
-            selectedTotal += this.selectedItems[i].value;
+            selectedTotal += this.selectedItems[i].finalValue || this.selectedItems[i].value || 0;
         }
         
         const cfValue = this.isOnline ? cf.total_value : cf.totalValue;
-        const minReq = cfValue * 0.9;
-        const maxReq = cfValue * 1.1;
+        const minReq = Math.floor(cfValue * 0.9);
+        const maxReq = Math.ceil(cfValue * 1.1);
+
+        console.log('Join validation:', {
+            selectedTotal: selectedTotal,
+            cfValue: cfValue,
+            minReq: minReq,
+            maxReq: maxReq,
+            valid: selectedTotal >= minReq && selectedTotal <= maxReq
+        });
 
         if (selectedTotal < minReq || selectedTotal > maxReq) {
-            this.showToast('Value must be ' + this.formatNumber(minReq) + '-' + this.formatNumber(maxReq), 'error');
+            this.showToast('Value must be ' + this.formatNumber(minReq) + '-' + this.formatNumber(maxReq) + ' 💎 (You selected: ' + this.formatNumber(selectedTotal) + ' 💎)', 'error');
             this.isJoiningCoinflip = false;
             return;
         }
