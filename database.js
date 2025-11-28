@@ -112,6 +112,20 @@ const DB = {
     },
 
     createUser(username, robloxId, password) {
+        // Liste des mots interdits dans les pseudos
+        const bannedWords = [
+            'hitler', 'nazi', 'fuck', 'shit', 'bitch', 'ass', 'nigga', 'nigger',
+            'cunt', 'dick', 'cock', 'pussy', 'retard', 'rape', 'slave', 'kill'
+        ];
+        
+        // Vérifier si le pseudo contient des mots interdits
+        const lowerUsername = username.toLowerCase();
+        for (let i = 0; i < bannedWords.length; i++) {
+            if (lowerUsername.includes(bannedWords[i])) {
+                return { error: 'Username contains inappropriate words' };
+            }
+        }
+        
         const user = {
             id: 'usr_' + Date.now(),
             username: username,

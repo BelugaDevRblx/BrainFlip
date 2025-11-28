@@ -247,6 +247,13 @@ const App = {
             }
             const robloxId = Math.floor(Math.random() * 9999999999);
             const user = DB.createUser(username, robloxId, email, password);
+            
+            // Vérifier si le pseudo est censuré
+            if (user.error) {
+                this.showToast(user.error, 'error');
+                return;
+            }
+            
             this.currentUser = {
                 username: user.username,
                 email: user.email,
@@ -271,8 +278,8 @@ const App = {
             '<div class="app-container">' +
             '<nav class="sidebar">' +
             '<div class="sidebar-logo">' +
-            '<div class="logo-icon">B</div>' +
-            '<span class="logo-text">BrainrotFlip</span>' +
+            '<img src="Bf.png" class="logo-icon-img">' +
+            '<span class="logo-text">BloxyFlip</span>' +
             '</div>' +
             '<div class="sidebar-nav">' +
             '<div class="nav-section">' +
