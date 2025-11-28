@@ -2432,3 +2432,43 @@ body {
     height: 32px;
     object-fit: contain;
 }
+
+/* Badges traits et mutation sur items */
+.item-traits {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    margin: 0.5rem 0;
+    justify-content: center;
+}
+
+.trait-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    color: white;
+    font-weight: 700;
+    text-transform: uppercase;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+.item-mutation {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 700;
+    border-radius: 6px;
+    margin: 0.5rem 0;
+    text-align: center;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4);
+}
+
+/* Ajuster l'espacement dans les item-cards */
+.item-card .icon {
+    margin-bottom: 0.25rem;
+}
+
+.inventory-item .icon {
+    margin-bottom: 0.25rem;
+}

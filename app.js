@@ -667,8 +667,45 @@ const App = {
                 }
             }
             
+            // Générer les badges traits
+            let traitsHtml = '';
+            if (item.traits && item.traits.length > 0) {
+                traitsHtml = '<div class="item-traits">';
+                const traitColors = {
+                    shiny: '#ffd700',
+                    blessed: '#00ff00',
+                    cursed: '#8b008b',
+                    corrupted: '#ff0000'
+                };
+                for (let j = 0; j < item.traits.length; j++) {
+                    const traitKey = item.traits[j];
+                    const color = traitColors[traitKey] || '#888';
+                    traitsHtml += '<span class="trait-badge" style="background:' + color + ';">' + traitKey + '</span>';
+                }
+                traitsHtml += '</div>';
+            }
+            
+            // Badge mutation
+            let mutationHtml = '';
+            if (item.mutation) {
+                const mutationNames = {
+                    rainbow: '🌈 Rainbow',
+                    lava: '🔥 Lava',
+                    galaxy: '🌌 Galaxy',
+                    yinyang: '☯️ YinYang',
+                    gold: '🏆 Gold',
+                    diamond: '💎 Diamond',
+                    bloodrot: '🩸 Bloodrot',
+                    candy: '🍬 Candy',
+                    radioactive: '☢️ Radioactive'
+                };
+                mutationHtml = '<div class="item-mutation">' + (mutationNames[item.mutation] || item.mutation) + '</div>';
+            }
+            
             html += '<div class="inventory-item' + effectClass + '">' +
                 '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
+                traitsHtml +
+                mutationHtml +
                 '<div class="name">' + item.name + '</div>' +
                 '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                 '</div>';
@@ -680,6 +717,45 @@ const App = {
         if (num >= 1e6) return (num / 1e6).toFixed(1) + 'M';
         if (num >= 1e3) return (num / 1e3).toFixed(1) + 'K';
         return num.toString();
+    },
+
+    getItemBadgesHtml(item) {
+        let html = '';
+        
+        // Badges traits
+        if (item.traits && item.traits.length > 0) {
+            html += '<div class="item-traits">';
+            const traitColors = {
+                shiny: '#ffd700',
+                blessed: '#00ff00',
+                cursed: '#8b008b',
+                corrupted: '#ff0000'
+            };
+            for (let j = 0; j < item.traits.length; j++) {
+                const traitKey = item.traits[j];
+                const color = traitColors[traitKey] || '#888';
+                html += '<span class="trait-badge" style="background:' + color + ';">' + traitKey + '</span>';
+            }
+            html += '</div>';
+        }
+        
+        // Badge mutation
+        if (item.mutation) {
+            const mutationNames = {
+                rainbow: '🌈 Rainbow',
+                lava: '🔥 Lava',
+                galaxy: '🌌 Galaxy',
+                yinyang: '☯️ YinYang',
+                gold: '🏆 Gold',
+                diamond: '💎 Diamond',
+                bloodrot: '🩸 Bloodrot',
+                candy: '🍬 Candy',
+                radioactive: '☢️ Radioactive'
+            };
+            html += '<div class="item-mutation">' + (mutationNames[item.mutation] || item.mutation) + '</div>';
+        }
+        
+        return html;
     },
 
     async loadCoinflips() {
@@ -1132,6 +1208,7 @@ const App = {
                 
                 itemsHtml += '<div class="item-card' + effectClass + '" data-id="' + item.uniqueId + '" data-value="' + itemValue + '" onclick="App.toggleItem(this,\'create\')">' +
                     '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
+                    this.getItemBadgesHtml(item) +
                     '<div class="name">' + item.name + '</div>' +
                     '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                     '</div>';
@@ -1216,6 +1293,7 @@ const App = {
                 
                 itemsHtml += '<div class="item-card' + effectClass + '" data-id="' + item.uniqueId + '" data-value="' + itemValue + '" onclick="App.toggleItem(this,\'join\')">' +
                     '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
+                    this.getItemBadgesHtml(item) +
                     '<div class="name">' + item.name + '</div>' +
                     '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                     '</div>';
