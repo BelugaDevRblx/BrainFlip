@@ -1475,17 +1475,18 @@ const App = {
         const opponentSide = creatorSide === 'H' ? 'T' : 'H';
         const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
 
-        // CALCULER LE WINNER MAINTENANT (avant l'animation)
-        const winnerResult = this.isOnline
-            ? await SupaDB.finishCoinflip(cfId, null)
-            : DB.finishCoinflip(cfId, null);
-        
-        if (!winnerResult) {
-            console.error('Failed to finish coinflip');
-            return;
+        // CALCULER LE WINNER LOCALEMENT (sans appeler finishCoinflip)
+        // Si le coinflip a déjà un winner stocké, l'utiliser
+        let winnerSide;
+        if (cf.winner && cf.winnerSide) {
+            winnerSide = this.isOnline ? cf.winner_side : cf.winnerSide;
+        } else {
+            // Sinon calculer maintenant (même logique que finishCoinflip)
+            winnerSide = Math.random() < 0.5 ? creatorSide : (creatorSide === 'H' ? 'T' : 'H');
         }
         
-        const winnerSide = this.isOnline ? winnerResult.winner_side : winnerResult.winnerSide;
+        // Stocker le winner pour que finishCoinflip l'utilise plus tard
+        this.pendingCoinflipWinner = { cfId: cfId, winnerSide: winnerSide };
         
         // Choisir LA BONNE VIDÉO en fonction du winner
         const correctVideo = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
@@ -1608,9 +1609,16 @@ const App = {
         const self = this;
         
         video.onended = async function() {
-            // Le winner a déjà été calculé avant l'animation
-            // On recharge juste l'inventaire
+            // Utiliser le winner pré-calculé
+            const winnerSide = self.pendingCoinflipWinner && self.pendingCoinflipWinner.cfId === cfId 
+                ? self.pendingCoinflipWinner.winnerSide 
+                : null;
             
+            // Maintenant on peut appeler finishCoinflip avec le winner déjà calculé
+            const result = self.isOnline
+                ? await SupaDB.finishCoinflip(cfId, winnerSide)
+                : DB.finishCoinflip(cfId, winnerSide);
+
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);
                 self.currentUser.inventory = user.inventory || [];
@@ -1628,6 +1636,7 @@ const App = {
             }
             
             localStorage.removeItem('brainrotflip_active_coinflip');
+            delete self.pendingCoinflipWinner;
             self.updateUI();
             self.loadCoinflips();
 
