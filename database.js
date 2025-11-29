@@ -190,6 +190,10 @@ const DB = {
         this.removeItemsFromUser(creatorUsername, uniqueIds);
         this.shared.coinflips.push(coinflip);
         this.saveShared();
+        
+        console.log('[DB] Coinflip created:', coinflip.id, 'Status:', coinflip.status);
+        console.log('[DB] Total coinflips after create:', this.shared.coinflips.length);
+        
         return coinflip;
     },
 
@@ -202,6 +206,7 @@ const DB = {
     },
 
     getAllActiveCoinflips() {
+        console.log('[DB] getAllActiveCoinflips called, count:', this.shared.coinflips.length);
         return this.shared.coinflips;
     },
 
