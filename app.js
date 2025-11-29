@@ -1470,8 +1470,21 @@ const App = {
         const opponentSide = creatorSide === 'H' ? 'T' : 'H';
         const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
 
-        // Vidéo aléatoire pour le suspense (sera ignorée, on attend le vrai résultat)
-        const randomVideo = Math.random() < 0.5 ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
+        // CALCULER LE WINNER MAINTENANT (avant l'animation)
+        const winnerResult = this.isOnline
+            ? await SupaDB.finishCoinflip(cfId, null)
+            : DB.finishCoinflip(cfId, null);
+        
+        if (!winnerResult) {
+            console.error('Failed to finish coinflip');
+            return;
+        }
+        
+        const winnerSide = this.isOnline ? winnerResult.winner_side : winnerResult.winnerSide;
+        
+        // Choisir LA BONNE VIDÉO en fonction du winner
+        const correctVideo = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
+        console.log('Winner side:', winnerSide, '→ Video:', correctVideo);
 
         let creatorTotal = 0;
         for (let i = 0; i < creatorItems.length; i++) {
@@ -1512,6 +1525,7 @@ const App = {
             
             creatorItemsHtml += '<div class="bloxyx-item' + effectClass + '">' +
                 '<img src="' + item.icon + '">' +
+                this.getItemBadgesHtml(item) +
                 '<div class="item-name">' + item.name + '</div>' +
                 '<div class="item-value">B$' + this.formatNumber(itemValue / 1000) + '</div>' +
                 '</div>';
@@ -1542,6 +1556,7 @@ const App = {
             
             opponentItemsHtml += '<div class="bloxyx-item' + effectClass + '">' +
                 '<img src="' + item.icon + '">' +
+                this.getItemBadgesHtml(item) +
                 '<div class="item-name">' + item.name + '</div>' +
                 '<div class="item-value">B$' + this.formatNumber(itemValue / 1000) + '</div>' +
                 '</div>';
@@ -1549,7 +1564,7 @@ const App = {
 
         modal.innerHTML = '<div class="bloxyx-modal">' +
             '<button class="bloxyx-close" onclick="App.closeModal(\'cfAnimationModal\')">×</button>' +
-            '<div class="bloxyx-header">Bx | Bloxyx</div>' +
+            '<div class="bloxyx-header"><img src="BloxyF.png" style="height:40px;"></div>' +
             '<div class="bloxyx-players-section">' +
             '<div class="bloxyx-player-card">' +
             '<img src="' + creatorAvatar + '" class="bloxyx-avatar">' +
@@ -1558,7 +1573,7 @@ const App = {
             '</div>' +
             '<div class="bloxyx-vs-coin">' +
             '<video id="coinVideo" class="bloxyx-coin-video" muted autoplay>' +
-            '<source src="' + randomVideo + '" type="video/mp4">' +
+            '<source src="' + correctVideo + '" type="video/mp4">' +
             '</video>' +
             '</div>' +
             '<div class="bloxyx-player-card">' +
@@ -1588,11 +1603,9 @@ const App = {
         const self = this;
         
         video.onended = async function() {
-            // NE PAS passer winnerSide - il sera calculé par finishCoinflip
-            const result = self.isOnline
-                ? await SupaDB.finishCoinflip(cfId, null)
-                : DB.finishCoinflip(cfId, null);
-
+            // Le winner a déjà été calculé avant l'animation
+            // On recharge juste l'inventaire
+            
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);
                 self.currentUser.inventory = user.inventory || [];
