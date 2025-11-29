@@ -388,12 +388,16 @@ const App = {
             const cf = coinflips[i];
             const status = this.isOnline ? cf.status : cf.status;
             const creator = this.isOnline ? cf.creator : cf.creator;
+            const opponent = this.isOnline ? cf.opponent : cf.opponent;
             const cfId = this.isOnline ? cf.id : cf.id;
+
+            console.log('Checking coinflip:', { cfId, status, creator, opponent, isMyGame: creator === this.currentUser.username });
 
             if (creator === this.currentUser.username && status === 'playing') {
                 const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
                 if (!activeCfId || activeCfId !== cfId) {
                     localStorage.setItem('brainrotflip_active_coinflip', cfId);
+                    console.log('Starting animation for:', cfId);
                     this.startCoinflipAnimation(cf);
                     break;
                 }
@@ -1461,12 +1465,18 @@ const App = {
         }
 
         const cfId = this.isOnline ? cf.id : cf.id;
-
         const creator = this.isOnline ? cf.creator : cf.creator;
+        const opponent = this.isOnline ? cf.opponent : cf.opponent;
+        
+        // VÉRIFIER QU'IL Y A BIEN UN OPPONENT
+        if (!opponent) {
+            console.log('No opponent yet, skipping animation for:', cfId);
+            return;
+        }
+        
         const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
         const creatorSide = this.isOnline ? cf.creator_side : cf.creatorSide;
         const creatorItems = this.isOnline ? cf.creator_items : cf.creatorItems;
-        const opponent = this.isOnline ? cf.opponent : cf.opponent;
         const opponentAvatar = this.isOnline ? cf.opponent_avatar : cf.opponentAvatar;
         const opponentItems = this.isOnline ? cf.opponent_items : cf.opponentItems;
         const totalValue = this.isOnline ? cf.total_value : cf.totalValue;
