@@ -57,9 +57,8 @@ const DB = {
             this.save();
         }
 
-        // NETTOYER TOUS LES COINFLIPS AU DÉMARRAGE
-        this.shared.coinflips = [];
-        this.saveShared();
+        // Ne PAS nettoyer les coinflips au démarrage (sinon ils disparaissent !)
+        // Les coinflips actifs doivent persister
 
         this.save();
         return this.data;
