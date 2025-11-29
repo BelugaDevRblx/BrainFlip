@@ -765,6 +765,9 @@ const App = {
         } else {
             coinflips = DB.getAllActiveCoinflips();
         }
+        
+        console.log('All coinflips:', coinflips);
+        console.log('Current user:', this.currentUser.username);
             
         const container = document.getElementById('coinflipList');
         if (!container) return;
@@ -1370,6 +1373,8 @@ const App = {
         const cf = this.isOnline
             ? await SupaDB.createCoinflip(this.currentUser.username, this.selectedItems, this.selectedSide)
             : DB.createCoinflip(this.currentUser.username, this.selectedItems, this.selectedSide);
+        
+        console.log('Coinflip created:', cf);
             
         if (cf) {
             this.closeModal('createCfModal');
