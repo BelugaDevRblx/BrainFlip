@@ -370,12 +370,14 @@ const App = {
                 this.checkForActiveCoinflip();
             }, 3000);
             setInterval(() => this.loadChat(), 2000);
+            setInterval(() => this.updateBalance(), 5000); // Refresh balance toutes les 5 secondes
         } else {
             setInterval(() => {
                 this.loadCoinflips();
                 this.checkForActiveCoinflip();
             }, 3000);
             setInterval(() => this.loadChat(), 2000);
+            setInterval(() => this.updateBalance(), 5000); // Refresh balance toutes les 5 secondes
         }
     },
 
@@ -1116,6 +1118,7 @@ const App = {
             
             html += '<div class="wallet-item' + selectedClass + effectClass + '" onclick="App.toggleWalletItem(\'' + item.uniqueId + '\')">' +
                 '<img src="' + item.icon + '" alt="' + item.name + '">' +
+                this.getItemBadgesHtml(item) +
                 '<div class="wallet-item-name">' + item.name + '</div>' +
                 '<div class="wallet-item-value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                 '</div>';
@@ -1588,7 +1591,8 @@ const App = {
             '<div class="bloxyx-username">' + creator + '</div>' +
             '</div>' +
             '<div class="bloxyx-vs-coin">' +
-            '<video id="coinVideo" class="bloxyx-coin-video" muted autoplay>' +
+            '<div id="countdown" style="font-size:5rem;font-weight:900;color:white;text-shadow:0 0 30px rgba(59,130,246,0.8);">3</div>' +
+            '<video id="coinVideo" class="bloxyx-coin-video" muted style="display:none;">' +
             '<source src="' + correctVideo + '" type="video/mp4">' +
             '</video>' +
             '</div>' +
@@ -1614,6 +1618,23 @@ const App = {
             '</div>';
             
         document.body.appendChild(modal);
+
+        // COUNTDOWN 3 SECONDES
+        const countdownEl = document.getElementById('countdown');
+        const videoEl = document.getElementById('coinVideo');
+        let count = 3;
+        
+        const countdownInterval = setInterval(function() {
+            count--;
+            if (count > 0) {
+                countdownEl.textContent = count;
+            } else {
+                clearInterval(countdownInterval);
+                countdownEl.style.display = 'none';
+                videoEl.style.display = 'block';
+                videoEl.play();
+            }
+        }, 1000);
 
         const video = document.getElementById('coinVideo');
         const self = this;
@@ -1647,6 +1668,9 @@ const App = {
             
             localStorage.removeItem('brainrotflip_active_coinflip');
             delete self.pendingCoinflipWinner;
+            
+            // UPDATE BALANCE IMMÉDIATEMENT
+            self.updateBalance();
             self.updateUI();
             self.loadCoinflips();
 
@@ -1654,6 +1678,17 @@ const App = {
                 self.closeModal('cfAnimationModal');
             }, 3000);
         };
+    },
+
+    updateBalance() {
+        const balance = this.isOnline
+            ? this.currentUser.inventory.reduce((sum, item) => sum + (item.finalValue || item.value || 0), 0)
+            : DB.getUserBalance(this.currentUser.username);
+        
+        const balanceEl = document.getElementById('userBalance');
+        if (balanceEl) {
+            balanceEl.textContent = this.formatNumber(balance) + ' 💎';
+        }
     },
 
     async loadChat() {
@@ -1840,6 +1875,7 @@ const App = {
                     '</div>' +
                     '</div>' +
                     '<div style="display:flex;gap:0.5rem;">' +
+                    '<button onclick="App.deleteAccount(\'' + u.username + '\')" style="padding:0.5rem 1rem;background:#1f2937;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;">Delete</button>' +
                     (isBanned 
                         ? '<button onclick="App.unbanIP(\'' + userIP + '\')" style="padding:0.5rem 1rem;background:var(--accent-green);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;">Unban IP</button>'
                         : '<button onclick="App.banIP(\'' + userIP + '\')" style="padding:0.5rem 1rem;background:var(--accent-red);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;">Ban IP</button>') +
@@ -1850,9 +1886,17 @@ const App = {
         }
     },
 
+    deleteAccount(username) {
+        if (!this.isOnline && confirm('Delete account "' + username + '"? This cannot be undone!')) {
+            DB._deleteUser(username); // Utiliser la fonction interne
+            this.showToast('Account deleted!', 'success');
+            this.loadAdminPanel();
+        }
+    },
+
     banIP(ip) {
         if (!this.isOnline) {
-            DB.banIP(ip);
+            DB._banIP(ip); // Utiliser la fonction interne
             this.showToast('IP ' + ip + ' banned!', 'success');
             this.loadAdminPanel();
         }
@@ -1860,7 +1904,7 @@ const App = {
 
     unbanIP(ip) {
         if (!this.isOnline) {
-            DB.unbanIP(ip);
+            DB._unbanIP(ip); // Utiliser la fonction interne
             this.showToast('IP ' + ip + ' unbanned!', 'success');
             this.loadAdminPanel();
         }
@@ -2219,10 +2263,12 @@ const App = {
         } else {
             for (let i = 0; i < this.currentUser.inventory.length; i++) {
                 const item = this.currentUser.inventory[i];
+                const itemValue = item.finalValue || item.value || 0;
                 itemsHtml += '<div class="item-card" data-id="' + item.uniqueId + '" onclick="App.toggleTipItem(this)">' +
                     '<div class="icon"><img src="' + item.icon + '" alt="' + item.name + '"></div>' +
+                    this.getItemBadgesHtml(item) +
                     '<div class="name">' + item.name + '</div>' +
-                    '<div class="value">' + item.value + ' 💎</div>' +
+                    '<div class="value">' + this.formatNumber(itemValue) + ' 💎</div>' +
                     '</div>';
             }
         }

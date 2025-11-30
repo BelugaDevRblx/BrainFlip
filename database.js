@@ -61,7 +61,38 @@ const DB = {
         // Les coinflips actifs doivent persister
 
         this.save();
+        
+        // BLOQUER ACCÈS CONSOLE aux fonctions dangereuses
+        this._protectConsole();
+        
         return this.data;
+    },
+
+    _protectConsole() {
+        // Remplacer les fonctions dangereuses par des versions protégées
+        const originalDeleteUser = this.deleteUser.bind(this);
+        const originalBanIP = this.banIP.bind(this);
+        const originalUnbanIP = this.unbanIP.bind(this);
+        
+        this.deleteUser = function(username) {
+            console.warn('⚠️ Direct console access blocked. Use admin panel.');
+            return false;
+        };
+        
+        this.banIP = function(ip) {
+            console.warn('⚠️ Direct console access blocked. Use admin panel.');
+            return false;
+        };
+        
+        this.unbanIP = function(ip) {
+            console.warn('⚠️ Direct console access blocked. Use admin panel.');
+            return false;
+        };
+        
+        // Garder les vraies fonctions sous des noms internes
+        this._deleteUser = originalDeleteUser;
+        this._banIP = originalBanIP;
+        this._unbanIP = originalUnbanIP;
     },
 
     save() {
@@ -424,6 +455,15 @@ const DB = {
     isIPBanned(ip) {
         if (!this.data.bannedIPs) return false;
         return this.data.bannedIPs.includes(ip);
+    },
+
+    deleteUser(username) {
+        if (this.data.users[username]) {
+            delete this.data.users[username];
+            this.save();
+            return true;
+        }
+        return false;
     },
 
     calculateItemValue(item) {
