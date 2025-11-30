@@ -12,22 +12,15 @@ const App = {
     selectedWalletItems: [],
 
     async init() {
-        // FORCER MODE ONLINE UNIQUEMENT
-        this.isOnline = true;
+        // MODE HYBRIDE : localStorage si Supabase pas dispo
+        this.isOnline = typeof SupaDB !== 'undefined';
         
-        if (typeof SupaDB === 'undefined') {
-            alert('⚠️ ERROR: Supabase is required to use BrainFlip.\n\nThe site cannot function without it.\n\nPlease refresh the page or contact support.');
-            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:white;font-family:Inter,sans-serif;flex-direction:column;gap:1rem;">' +
-                '<h1 style="font-size:3rem;">🚫</h1>' +
-                '<h2>Supabase Required</h2>' +
-                '<p style="color:#94a3b8;">BrainFlip requires Supabase to function securely.</p>' +
-                '<button onclick="location.reload()" style="padding:0.75rem 2rem;background:#3b82f6;border:none;border-radius:8px;color:white;font-weight:700;cursor:pointer;margin-top:1rem;">Refresh Page</button>' +
-                '</div>';
-            return;
+        if (!this.isOnline) {
+            console.warn('⚠️ Running in offline mode (localStorage). Data is NOT protected.');
+            await DB.init();
+        } else {
+            console.log('✅ Running in Supabase mode. Data is secure.');
         }
-        
-        // Bloquer localStorage
-        await DB.init();
         
         this.simulateLoading();
     },
@@ -1501,15 +1494,16 @@ const App = {
         const opponentSide = creatorSide === 'H' ? 'T' : 'H';
         const opponentSideImg = opponentSide === 'H' ? 'Head_Tile.png' : 'Tails_Tile.png';
 
-        // CALCULER LE WINNER LOCALEMENT (sans appeler finishCoinflip)
-        // Si le coinflip a déjà un winner stocké, l'utiliser
+        // UTILISER LE WINNER DÉJÀ CALCULÉ (dans joinCoinflip)
+        // Les 2 joueurs utilisent le MÊME winner !
         let winnerSide;
-        if (cf.winner && cf.winnerSide) {
-            winnerSide = this.isOnline ? cf.winner_side : cf.winnerSide;
+        if (this.isOnline) {
+            winnerSide = cf.winner_side || cf.creator_side; // Supabase
         } else {
-            // Sinon calculer maintenant (même logique que finishCoinflip)
-            winnerSide = Math.random() < 0.5 ? creatorSide : (creatorSide === 'H' ? 'T' : 'H');
+            winnerSide = cf.winnerSide || cf.creatorSide; // localStorage
         }
+        
+        console.log('Using pre-calculated winner side:', winnerSide);
         
         // Stocker le winner pour que finishCoinflip l'utilise plus tard
         this.pendingCoinflipWinner = { cfId: cfId, winnerSide: winnerSide };
@@ -1632,20 +1626,26 @@ const App = {
             
         document.body.appendChild(modal);
 
-        // COUNTDOWN 3 SECONDES
+        // COUNTDOWN 3-2-1-GO
         const countdownEl = document.getElementById('countdown');
         const videoEl = document.getElementById('coinVideo');
         let count = 3;
         
         const countdownInterval = setInterval(function() {
-            count--;
-            if (count > 0) {
+            if (count > 1) {
+                count--;
                 countdownEl.textContent = count;
+            } else if (count === 1) {
+                countdownEl.textContent = 'GO!';
+                countdownEl.style.color = '#22c55e';
+                count--;
             } else {
                 clearInterval(countdownInterval);
-                countdownEl.style.display = 'none';
-                videoEl.style.display = 'block';
-                videoEl.play();
+                setTimeout(function() {
+                    countdownEl.style.display = 'none';
+                    videoEl.style.display = 'block';
+                    videoEl.play();
+                }, 500);
             }
         }, 1000);
 

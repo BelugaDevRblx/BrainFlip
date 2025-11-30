@@ -355,6 +355,16 @@ const DB = {
         cf.opponentAvatar = opponent.avatar;
         cf.opponentItems = items;
         cf.status = 'playing';
+        
+        // CALCULER LE WINNER MAINTENANT (avant l'animation)
+        // Comme ça, les 2 joueurs auront le même résultat !
+        const winnerSide = Math.random() < 0.5 ? cf.creatorSide : (cf.creatorSide === 'H' ? 'T' : 'H');
+        const winner = winnerSide === cf.creatorSide ? cf.creator : opponentUsername;
+        
+        cf.winnerSide = winnerSide;
+        cf.winner = winner;
+        
+        console.log('[DB] Winner calculated:', winner, 'Side:', winnerSide);
 
         const uniqueIds = items.map(function(i) { return i.uniqueId; });
         this.removeItemsFromUser(opponentUsername, uniqueIds);

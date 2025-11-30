@@ -367,13 +367,21 @@ const SupaDB = {
 
         await this.removeItemsFromUser(opponentUsername, items.map(i => i.uniqueId));
 
+        // CALCULER LE WINNER MAINTENANT (avant l'animation)
+        const winnerSide = Math.random() < 0.5 ? cf.creator_side : (cf.creator_side === 'H' ? 'T' : 'H');
+        const winner = winnerSide === cf.creator_side ? cf.creator : opponentUsername;
+        
+        console.log('[Supabase] Winner calculated:', winner, 'Side:', winnerSide);
+
         const { data, error } = await supabase
             .from('coinflips')
             .update({
                 opponent: opponentUsername,
                 opponent_avatar: opponent.avatar,
                 opponent_items: items,
-                status: 'playing'
+                status: 'playing',
+                winner: winner,
+                winner_side: winnerSide
             })
             .eq('id', coinflipId)
             .select()
