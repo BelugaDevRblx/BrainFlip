@@ -396,10 +396,9 @@ const App = {
             const creator = this.isOnline ? cf.creator : cf.creator;
             const opponent = this.isOnline ? cf.opponent : cf.opponent;
             const cfId = this.isOnline ? cf.id : cf.id;
-            const winner = this.isOnline ? cf.winner : cf.winner;
 
-            // Ne PAS lancer l'animation si déjà finished
-            if (winner || status === 'finished') continue;
+            // Skip seulement si status = 'finished'
+            if (status === 'finished') continue;
 
             if (creator === this.currentUser.username && status === 'playing') {
                 const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
@@ -1641,23 +1640,28 @@ const App = {
                 ? await SupaDB.finishCoinflip(cfId, winnerSide)
                 : DB.finishCoinflip(cfId, winnerSide);
 
-            // ATTENDRE que la DB soit à jour avant de recharger
-            await new Promise(resolve => setTimeout(resolve, 500));
+            // ATTENDRE 2 secondes pour que Supabase finisse de save
+            await new Promise(resolve => setTimeout(resolve, 2000));
 
+            // Recharger SEULEMENT l'inventory et stats
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);
-                self.currentUser.inventory = user.inventory || [];
-                self.currentUser.stats = {
-                    wagered: user.stats_wagered || 0,
-                    won: user.stats_won || 0,
-                    lost: user.stats_lost || 0,
-                    gamesPlayed: user.stats_games_played || 0,
-                    gamesWon: user.stats_games_won || 0
-                };
+                if (user) {
+                    self.currentUser.inventory = user.inventory || [];
+                    self.currentUser.stats = {
+                        wagered: user.stats_wagered || 0,
+                        won: user.stats_won || 0,
+                        lost: user.stats_lost || 0,
+                        gamesPlayed: user.stats_games_played || 0,
+                        gamesWon: user.stats_games_won || 0
+                    };
+                }
             } else {
                 const user = DB.getUser(self.currentUser.username);
-                self.currentUser.inventory = user.inventory;
-                self.currentUser.stats = user.stats;
+                if (user) {
+                    self.currentUser.inventory = user.inventory;
+                    self.currentUser.stats = user.stats;
+                }
             }
             
             localStorage.removeItem('brainrotflip_active_coinflip');
