@@ -5,236 +5,130 @@ const DB = {
     shared: null,
 
     async init() {
-        // FORCER MODE SUPABASE - localStorage désactivé
-        console.log('🔒 Running in Supabase-only mode. localStorage disabled for security.');
-        
-        // Bloquer TOUT accès à localStorage
-        this._blockLocalStorage();
-        
-        // Utiliser Supabase comme seule source de données
-        this.isOnline = true;
-        
-        // Les données ne sont JAMAIS stockées localement
-        this.data = {
-            users: {},
-            bannedIPs: [],
-            items: this.getDefaultData().items
-        };
-        
-        this.shared = {
-            coinflips: [],
-            coinflipsHistory: [],
-            chat: []
-        };
-        
+        const saved = localStorage.getItem(this.STORAGE_KEY);
+        if (saved) {
+            this.data = JSON.parse(saved);
+            
+            if (this.data.items && this.data.items.skibidi_toilet) {
+                console.log('Old data detected, resetting...');
+                localStorage.removeItem(this.STORAGE_KEY);
+                this.data = this.getDefaultData();
+            }
+        } else {
+            this.data = this.getDefaultData();
+        }
+
+        const sharedData = localStorage.getItem(this.SHARED_KEY);
+        if (sharedData) {
+            this.shared = JSON.parse(sharedData);
+        } else {
+            this.shared = {
+                coinflips: [],
+                coinflipsHistory: [],
+                chat: []
+            };
+            this.saveShared();
+        }
+
+        if (!this.data.users['Brainflip']) {
+            this.data.users['Brainflip'] = {
+                id: 'usr_admin_brainflip',
+                username: 'Brainflip',
+                password: 'Beluga.2009',
+                robloxId: '1',
+                verified: true,
+                isAdmin: true,
+                level: 99,
+                discordLinked: false,
+                discordUsername: null,
+                badges: ['👑', '⭐', '🎮'],
+                stats: { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 },
+                inventory: [],
+                avatar: 'https://ui-avatars.com/api/?name=Brainflip&background=3b82f6&color=fff&size=128',
+                ip: '127.0.0.1',
+                createdAt: new Date().toISOString()
+            };
+            this.save();
+        } else if (this.data.users['Brainflip'].password !== 'Beluga.2009') {
+            this.data.users['Brainflip'].password = 'Beluga.2009';
+            this.data.users['Brainflip'].isAdmin = true;
+            this.save();
+        }
+
+        this.save();
+        this._protectStorage();
         return this.data;
     },
 
-    _blockLocalStorage() {
-        // Bloquer TOUTES les méthodes localStorage
-        const blocked = function() {
-            console.error('🚫 localStorage is disabled. All data is stored securely on Supabase.');
-            return null;
-        };
-        
-        // Override toutes les méthodes
-        Storage.prototype.setItem = blocked;
-        Storage.prototype.getItem = blocked;
-        Storage.prototype.removeItem = blocked;
-        Storage.prototype.clear = blocked;
-        
-        // Bloquer l'accès direct
-        Object.defineProperty(window, 'localStorage', {
-            get: function() {
-                console.error('🚫 localStorage access blocked. Use Supabase.');
-                return {
-                    setItem: blocked,
-                    getItem: blocked,
-                    removeItem: blocked,
-                    clear: blocked,
-                    length: 0
-                };
-            },
-            set: function() {
-                console.error('🚫 Cannot override localStorage.');
-            }
-        });
-        
-        console.log('🔒 localStorage completely disabled. All data on Supabase only.');
-    },
-
-    _protectConsole() {
-        // Remplacer les fonctions dangereuses par des versions protégées
-        const originalDeleteUser = this.deleteUser.bind(this);
-        const originalBanIP = this.banIP.bind(this);
-        const originalUnbanIP = this.unbanIP.bind(this);
-        
-        this.deleteUser = function(username) {
-            console.warn('⚠️ Direct console access blocked. Use admin panel.');
-            return false;
-        };
-        
-        this.banIP = function(ip) {
-            console.warn('⚠️ Direct console access blocked. Use admin panel.');
-            return false;
-        };
-        
-        this.unbanIP = function(ip) {
-            console.warn('⚠️ Direct console access blocked. Use admin panel.');
-            return false;
-        };
-        
-        // Garder les vraies fonctions sous des noms internes
-        this._deleteUser = originalDeleteUser;
-        this._banIP = originalBanIP;
-        this._unbanIP = originalUnbanIP;
-        
-        // PROTECTION CONTRE localStorage.clear()
-        this._setupBackupSystem();
-    },
-
-    _setupBackupSystem() {
+    _protectStorage() {
         const self = this;
         
-        // Backup toutes les 10 secondes
-        setInterval(function() {
-            // Backup dans IndexedDB (plus difficile à effacer)
-            self._backupToIndexedDB();
-        }, 10000);
-        
-        // Vérifier toutes les 3 secondes si localStorage a été clear
-        setInterval(function() {
-            const data = localStorage.getItem(self.STORAGE_KEY);
-            if (!data) {
-                console.warn('🚨 localStorage cleared detected! Restoring from backup...');
-                self._restoreFromIndexedDB();
-            }
-        }, 3000);
-        
-        // Override localStorage.clear()
         const originalClear = Storage.prototype.clear;
         Storage.prototype.clear = function() {
-            console.warn('⚠️ localStorage.clear() blocked!');
-            // Ne rien faire
+            console.warn('🚫 localStorage.clear() blocked!');
         };
         
-        // Override localStorage.removeItem pour nos clés
         const originalRemoveItem = Storage.prototype.removeItem;
         Storage.prototype.removeItem = function(key) {
             if (key === self.STORAGE_KEY || key === self.SHARED_KEY) {
-                console.warn('⚠️ Attempt to remove protected data blocked!');
+                console.warn('🚫 Cannot remove protected data');
                 return;
             }
-            originalRemoveItem.call(this, key);
+            return originalRemoveItem.call(this, key);
         };
-    },
-
-    _backupToIndexedDB() {
-        const self = this;
-        const request = indexedDB.open('BrainFlipBackup', 1);
         
-        request.onupgradeneeded = function(event) {
-            const db = event.target.result;
-            if (!db.objectStoreNames.contains('backups')) {
-                db.createObjectStore('backups');
+        setInterval(function() {
+            const data = localStorage.getItem(self.STORAGE_KEY);
+            const shared = localStorage.getItem(self.SHARED_KEY);
+            if (data && shared) {
+                sessionStorage.setItem('backup_' + self.STORAGE_KEY, data);
+                sessionStorage.setItem('backup_' + self.SHARED_KEY, shared);
             }
-        };
+        }, 30000);
         
-        request.onsuccess = function(event) {
-            const db = event.target.result;
-            const transaction = db.transaction(['backups'], 'readwrite');
-            const store = transaction.objectStore('backups');
+        setInterval(function() {
+            const data = localStorage.getItem(self.STORAGE_KEY);
+            const shared = localStorage.getItem(self.SHARED_KEY);
             
-            store.put(self.data, 'userData');
-            store.put(self.shared, 'sharedData');
-        };
-    },
-
-    _restoreFromIndexedDB() {
-        const self = this;
-        const request = indexedDB.open('BrainFlipBackup', 1);
+            if (!data || !shared) {
+                console.warn('🚨 Data loss detected! Restoring...');
+                const backupData = sessionStorage.getItem('backup_' + self.STORAGE_KEY);
+                const backupShared = sessionStorage.getItem('backup_' + self.SHARED_KEY);
+                
+                if (backupData) localStorage.setItem(self.STORAGE_KEY, backupData);
+                if (backupShared) localStorage.setItem(self.SHARED_KEY, backupShared);
+            }
+        }, 5000);
         
-        request.onsuccess = function(event) {
-            const db = event.target.result;
-            const transaction = db.transaction(['backups'], 'readonly');
-            const store = transaction.objectStore('backups');
-            
-            const userDataRequest = store.get('userData');
-            const sharedDataRequest = store.get('sharedData');
-            
-            userDataRequest.onsuccess = function() {
-                if (userDataRequest.result) {
-                    self.data = userDataRequest.result;
-                    self.save();
-                }
-            };
-            
-            sharedDataRequest.onsuccess = function() {
-                if (sharedDataRequest.result) {
-                    self.shared = sharedDataRequest.result;
-                    self.saveShared();
-                }
-            };
-        };
+        console.log('🔒 Storage protection active');
     },
 
     save() {
-        // localStorage désactivé - tout est sur Supabase
-        console.log('💾 Data saved to Supabase only.');
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
     },
 
     saveShared() {
-        // localStorage désactivé - tout est sur Supabase
-        console.log('💾 Shared data saved to Supabase only.');
+        localStorage.setItem(this.SHARED_KEY, JSON.stringify(this.shared));
     },
 
     getDefaultData() {
         return {
             users: {},
-            bannedIPs: [],  // Liste des IPs bannies
+            bannedIPs: [],
             items: {
                 dragon_canneloni: { 
-                    id: "dragon_canneloni", 
-                    name: "Dragon canneloni", 
+                    id: 'dragon_canneloni',
+                    name: 'Dragon canneloni',
                     value: 5000,
-                    icon: "item_assets/Dragoncanneloni.png",
-                    rarity: "legendary"
+                    icon: 'item_assets/Dragoncanneloni.png'
                 }
-            },
-            // TRAITS - Peut en avoir plusieurs
-            availableTraits: {
-                shiny: { name: "Shiny", multiplier: 1.5, color: "#ffd700" },
-                blessed: { name: "Blessed", multiplier: 2.0, color: "#00ff00" },
-                cursed: { name: "Cursed", multiplier: 0.5, color: "#8b008b" },
-                corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }
-            },
-            // MUTATIONS - Un seul à la fois + Effet visuel
-            availableMutations: {
-                rainbow: { name: "Rainbow", multiplier: 2.0, effect: "rainbow-glow" },
-                lava: { name: "Lava", multiplier: 3.0, effect: "lava-glow" },
-                galaxy: { name: "Galaxy", multiplier: 4.0, effect: "galaxy-glow" },
-                yinyang: { name: "YinYang", multiplier: 2.5, effect: "yinyang-glow" },
-                gold: { name: "Gold", multiplier: 5.0, effect: "gold-glow" },
-                diamond: { name: "Diamond", multiplier: 10.0, effect: "diamond-glow" },
-                bloodrot: { name: "Bloodrot", multiplier: 0.1, effect: "bloodrot-glow" },
-                candy: { name: "Candy", multiplier: 1.5, effect: "candy-glow" },
-                radioactive: { name: "Radioactive", multiplier: 7.0, effect: "radioactive-glow" }
             }
         };
     },
 
-    getUser(username) {
-        return this.data.users[username] || null;
-    },
-
     createUser(username, robloxId, password) {
-        // Liste des mots interdits dans les pseudos
-        const bannedWords = [
-            'hitler', 'nazi', 'fuck', 'shit', 'bitch', 'ass', 'nigga', 'nigger',
-            'cunt', 'dick', 'cock', 'pussy', 'retard', 'rape', 'slave', 'kill'
-        ];
+        const bannedWords = ['hitler', 'nazi', 'fuck', 'shit', 'bitch', 'ass', 'nigga', 'nigger', 'cunt', 'dick', 'cock', 'pussy', 'retard', 'rape', 'slave', 'kill'];
         
-        // Vérifier si le pseudo contient des mots interdits
         const lowerUsername = username.toLowerCase();
         for (let i = 0; i < bannedWords.length; i++) {
             if (lowerUsername.includes(bannedWords[i])) {
@@ -242,7 +136,6 @@ const DB = {
             }
         }
         
-        // Générer une fausse IP (en vrai il faudrait récupérer la vraie IP côté serveur)
         const fakeIP = Math.floor(Math.random() * 255) + '.' + 
                        Math.floor(Math.random() * 255) + '.' + 
                        Math.floor(Math.random() * 255) + '.' + 
@@ -262,12 +155,20 @@ const DB = {
             stats: { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 },
             inventory: [],
             avatar: 'https://www.roblox.com/headshot-thumbnail/image?userId=' + robloxId + '&width=150&height=150&format=png',
-            ip: fakeIP,  // Stocker l'IP
+            ip: fakeIP,
             createdAt: new Date().toISOString()
         };
         this.data.users[username] = user;
         this.save();
         return user;
+    },
+
+    getUser(username) {
+        return this.data.users[username] || null;
+    },
+
+    getAllUsers() {
+        return Object.values(this.data.users);
     },
 
     removeItemsFromUser(username, uniqueIds) {
@@ -288,6 +189,113 @@ const DB = {
         }, 0);
     },
 
+    getAllItems() {
+        return Object.values(this.data.items);
+    },
+
+    banIP(ip) {
+        if (!this.data.bannedIPs) this.data.bannedIPs = [];
+        if (!this.data.bannedIPs.includes(ip)) {
+            this.data.bannedIPs.push(ip);
+            this.save();
+        }
+    },
+
+    unbanIP(ip) {
+        if (!this.data.bannedIPs) this.data.bannedIPs = [];
+        this.data.bannedIPs = this.data.bannedIPs.filter(function(bannedIP) {
+            return bannedIP !== ip;
+        });
+        this.save();
+    },
+
+    isIPBanned(ip) {
+        if (!this.data.bannedIPs) return false;
+        return this.data.bannedIPs.includes(ip);
+    },
+
+    deleteUser(username) {
+        if (this.data.users[username]) {
+            delete this.data.users[username];
+            this.save();
+            return true;
+        }
+        return false;
+    },
+
+    _deleteUser(username) {
+        return this.deleteUser(username);
+    },
+
+    _banIP(ip) {
+        return this.banIP(ip);
+    },
+
+    _unbanIP(ip) {
+        return this.unbanIP(ip);
+    },
+
+    calculateItemValue(item) {
+        let finalValue = item.value || 0;
+        
+        const traitMultipliers = {
+            shiny: 1.5,
+            blessed: 2.0,
+            cursed: 0.5,
+            corrupted: 0.25
+        };
+        
+        if (item.traits && item.traits.length > 0) {
+            for (let i = 0; i < item.traits.length; i++) {
+                const trait = item.traits[i];
+                if (traitMultipliers[trait]) {
+                    finalValue *= traitMultipliers[trait];
+                }
+            }
+        }
+        
+        const mutationMultipliers = {
+            rainbow: 2.0,
+            lava: 3.0,
+            galaxy: 4.0,
+            yinyang: 2.5,
+            gold: 5.0,
+            diamond: 10.0,
+            bloodrot: 0.1,
+            candy: 1.5,
+            radioactive: 7.0
+        };
+        
+        if (item.mutation && mutationMultipliers[item.mutation]) {
+            finalValue *= mutationMultipliers[item.mutation];
+        }
+        
+        return Math.floor(finalValue);
+    },
+
+    addItemToUser(username, itemData) {
+        const user = this.data.users[username];
+        if (!user) return null;
+
+        const baseItem = this.data.items[itemData.itemId];
+        if (!baseItem) return null;
+
+        const newItem = {
+            uniqueId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+            id: baseItem.id,
+            name: baseItem.name,
+            value: baseItem.value,
+            icon: baseItem.icon,
+            traits: itemData.traits || [],
+            mutation: itemData.mutation || null
+        };
+
+        newItem.finalValue = this.calculateItemValue(newItem);
+        user.inventory.push(newItem);
+        this.save();
+        return newItem;
+    },
+
     createCoinflip(creatorUsername, items, side) {
         const creator = this.data.users[creatorUsername];
         if (!creator) return null;
@@ -295,6 +303,7 @@ const DB = {
         const totalValue = items.reduce(function(sum, item) { 
             return sum + (item.finalValue || item.value || 0); 
         }, 0);
+        
         const coinflip = {
             id: 'cf_' + Date.now(),
             creator: creatorUsername,
@@ -357,15 +366,12 @@ const DB = {
         const cf = this.getCoinflip(coinflipId);
         if (!cf) return null;
 
-        // Si le coinflip a déjà un winner stocké, le retourner (même si status = finished)
         if (cf.winner && cf.winnerSide) {
             return { winner: cf.winner, winnerSide: cf.winnerSide };
         }
 
-        // Vérifier que le coinflip est en cours
         if (cf.status !== 'playing') return null;
 
-        // DÉTERMINER LE GAGNANT ICI (une seule fois)
         if (!winnerSide) {
             winnerSide = Math.random() < 0.5 ? cf.creatorSide : (cf.creatorSide === 'H' ? 'T' : 'H');
         }
@@ -373,23 +379,13 @@ const DB = {
         const winner = winnerSide === cf.creatorSide ? cf.creator : cf.opponent;
         const loser = winner === cf.creator ? cf.opponent : cf.creator;
 
-        // Stocker le winner dans le coinflip AVANT tout traitement
         cf.winner = winner;
         cf.winnerSide = winnerSide;
 
-        // Donner items au gagnant
-        const allItems = [];
-        for (let i = 0; i < cf.creatorItems.length; i++) {
-            allItems.push(Object.assign({}, cf.creatorItems[i]));
-        }
-        for (let i = 0; i < cf.opponentItems.length; i++) {
-            allItems.push(Object.assign({}, cf.opponentItems[i]));
-        }
-
-        const winnerUser = this.data.users[winner];
-        if (winnerUser) {
+        const allItems = cf.creatorItems.concat(cf.opponentItems);
+        if (this.data.users[winner]) {
             for (let i = 0; i < allItems.length; i++) {
-                winnerUser.inventory.push(allItems[i]);
+                this.data.users[winner].inventory.push(allItems[i]);
             }
         }
 
@@ -408,11 +404,9 @@ const DB = {
             this.data.users[loser].stats.gamesPlayed++;
         }
 
-        // Marquer comme finished au lieu de supprimer immédiatement
         cf.status = 'finished';
         cf.finishedAt = new Date().toISOString();
 
-        // Supprimer après 5 secondes
         const self = this;
         setTimeout(function() {
             self.shared.coinflips = self.shared.coinflips.filter(function(c) {
@@ -420,13 +414,6 @@ const DB = {
             });
             self.saveShared();
         }, 5000);
-
-        // Ajouter à l'historique
-
-        this.shared.coinflipsHistory.unshift(cf);
-        if (this.shared.coinflipsHistory.length > 50) {
-            this.shared.coinflipsHistory = this.shared.coinflipsHistory.slice(0, 50);
-        }
 
         this.save();
         this.saveShared();
@@ -436,250 +423,66 @@ const DB = {
 
     cancelCoinflip(coinflipId, username) {
         const cf = this.getCoinflip(coinflipId);
-        if (!cf || cf.status !== 'waiting' || cf.creator !== username) return null;
+        if (!cf || cf.creator !== username || cf.status !== 'waiting') return false;
 
-        const creator = this.data.users[cf.creator];
-        if (creator) {
-            creator.inventory = creator.inventory.concat(cf.creatorItems);
+        if (this.data.users[username]) {
+            for (let i = 0; i < cf.creatorItems.length; i++) {
+                this.data.users[username].inventory.push(cf.creatorItems[i]);
+            }
         }
 
         this.shared.coinflips = this.shared.coinflips.filter(function(c) {
             return c.id !== coinflipId;
         });
+        
         this.save();
         this.saveShared();
         return true;
     },
 
-    getCoinflipsHistory(limit) {
-        if (!limit) limit = 10;
-        return this.shared.coinflipsHistory.slice(0, limit);
-    },
-
-    tipUser(fromUsername, toUsername, itemUniqueIds) {
-        const fromUser = this.data.users[fromUsername];
-        const toUser = this.data.users[toUsername];
-        if (!fromUser || !toUser) return false;
-
-        const itemsToTip = fromUser.inventory.filter(function(item) {
-            return itemUniqueIds.includes(item.uniqueId);
-        });
-        if (itemsToTip.length === 0) return false;
-
-        fromUser.inventory = fromUser.inventory.filter(function(item) {
-            return !itemUniqueIds.includes(item.uniqueId);
-        });
-        toUser.inventory = toUser.inventory.concat(itemsToTip);
-
-        this.save();
-        return itemsToTip;
-    },
-
-    updateUserAvatar(username, avatarUrl) {
-        const user = this.data.users[username];
-        if (!user) return false;
-        user.avatar = avatarUrl;
-        this.save();
-        return true;
-    },
-
     addChatMessage(username, message) {
-        const user = this.data.users[username];
-        if (!user) return null;
-
         const msg = {
             id: 'msg_' + Date.now(),
             username: username,
-            avatar: user.avatar,
-            isAdmin: user.isAdmin,
-            message: message.substring(0, 200),
+            message: message,
             timestamp: new Date().toISOString()
         };
-
         this.shared.chat.push(msg);
         if (this.shared.chat.length > 100) {
-            this.shared.chat = this.shared.chat.slice(-100);
+            this.shared.chat = this.shared.chat.slice(-50);
         }
         this.saveShared();
         return msg;
     },
 
     getChatMessages(limit) {
-        if (!limit) limit = 50;
+        limit = limit || 50;
         return this.shared.chat.slice(-limit);
     },
 
-    getLeaderboard(type, limit) {
-        if (!type) type = 'wagered';
-        if (!limit) limit = 20;
-        return Object.values(this.data.users)
-            .sort(function(a, b) { return (b.stats[type] || 0) - (a.stats[type] || 0); })
-            .slice(0, limit);
-    },
-
-    getAllItems() {
-        return Object.values(this.data.items);
-    },
-
-    banIP(ip) {
-        if (!this.data.bannedIPs) this.data.bannedIPs = [];
-        if (!this.data.bannedIPs.includes(ip)) {
-            this.data.bannedIPs.push(ip);
-            this.save();
-        }
-    },
-
-    unbanIP(ip) {
-        if (!this.data.bannedIPs) this.data.bannedIPs = [];
-        this.data.bannedIPs = this.data.bannedIPs.filter(function(bannedIP) {
-            return bannedIP !== ip;
-        });
-        this.save();
-    },
-
-    isIPBanned(ip) {
-        if (!this.data.bannedIPs) return false;
-        return this.data.bannedIPs.includes(ip);
-    },
-
-    deleteUser(username) {
-        if (this.data.users[username]) {
-            delete this.data.users[username];
-            this.save();
-            return true;
-        }
-        return false;
-    },
-
-    calculateItemValue(item) {
-        const baseItem = this.data.items[item.id];
-        let finalValue = item.value || baseItem.value || 1000;
-        
-        // Appliquer les TRAITS (peut en avoir plusieurs)
-        if (item.traits && item.traits.length > 0) {
-            for (let i = 0; i < item.traits.length; i++) {
-                const traitKey = item.traits[i];
-                const trait = this.data.availableTraits[traitKey];
-                if (trait && trait.multiplier) {
-                    finalValue *= trait.multiplier;
-                }
-            }
-        }
-        
-        // Appliquer la MUTATION (un seul)
-        if (item.mutation) {
-            const mutation = this.data.availableMutations[item.mutation];
-            if (mutation && mutation.multiplier) {
-                finalValue *= mutation.multiplier;
-            }
-        }
-        
-        return Math.floor(finalValue);
-    },
-
-    addItemToUser(username, itemData) {
-        const user = this.data.users[username];
-        if (!user) return false;
-        
-        const baseItem = this.data.items[itemData.itemId];
-        if (!baseItem) return false;
-        
-        // Créer l'item avec traits et mutation
-        const newItem = {
-            uniqueId: 'item_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
-            id: itemData.itemId,
-            name: baseItem.name,
-            value: baseItem.value,
-            icon: baseItem.icon,
-            traits: itemData.traits || [],
-            mutation: itemData.mutation || null
-        };
-        
-        // Calculer la valeur finale avec traits + mutation
-        newItem.finalValue = this.calculateItemValue(newItem);
-        
-        user.inventory.push(newItem);
-        this.save();
-        return newItem;
-    },
-
-    getAllUsers() {
-        return Object.values(this.data.users);
-    },
-
     filterBadWords(message) {
-        const badWords = ['nigga', 'nigger', 'fuck', 'shit', 'bitch', 'ass', 'dick', 'pussy', 'porn', 'sex', 'rape', 'kill', 'suicide', 'nazi', 'hitler'];
-        let filtered = message.toLowerCase();
+        const badWords = ['fuck', 'shit', 'bitch', 'ass', 'damn', 'hell', 'crap', 'bastard', 'dick', 'pussy', 'cock', 'nigga', 'nigger', 'retard', 'faggot'];
+        let filtered = message;
         for (let i = 0; i < badWords.length; i++) {
             const word = badWords[i];
             const regex = new RegExp(word, 'gi');
-            filtered = filtered.replace(regex, '***');
+            filtered = filtered.replace(regex, '*'.repeat(word.length));
         }
         return filtered;
     },
 
-    resetUserInventory(username) {
-        const user = this.data.users[username];
-        if (!user) return false;
-        user.inventory = [];
-        this.shared.coinflips = this.shared.coinflips.filter(function(cf) {
-            return cf.creator !== username && cf.opponent !== username;
+    getLeaderboard(type, limit) {
+        type = type || 'wagered';
+        limit = limit || 20;
+        
+        const users = Object.values(this.data.users);
+        users.sort(function(a, b) {
+            if (type === 'wagered') return b.stats.wagered - a.stats.wagered;
+            if (type === 'won') return b.stats.won - a.stats.won;
+            if (type === 'gamesWon') return b.stats.gamesWon - a.stats.gamesWon;
+            return 0;
         });
-        this.save();
-        this.saveShared();
-        return true;
-    },
-
-    cancelAllCoinflips(returnItems) {
-        const coinflips = this.shared.coinflips;
-        if (returnItems) {
-            for (let i = 0; i < coinflips.length; i++) {
-                const cf = coinflips[i];
-                const creator = this.data.users[cf.creator];
-                if (creator && cf.creatorItems) {
-                    for (let j = 0; j < cf.creatorItems.length; j++) {
-                        creator.inventory.push(cf.creatorItems[j]);
-                    }
-                }
-                if (cf.opponent && cf.opponentItems) {
-                    const opponent = this.data.users[cf.opponent];
-                    if (opponent) {
-                        for (let j = 0; j < cf.opponentItems.length; j++) {
-                            opponent.inventory.push(cf.opponentItems[j]);
-                        }
-                    }
-                }
-            }
-        }
-        this.shared.coinflips = [];
-        this.save();
-        this.saveShared();
-        return true;
-    },
-
-    wipeAllData() {
-        const users = Object.keys(this.data.users);
-        for (let i = 0; i < users.length; i++) {
-            const username = users[i];
-            this.data.users[username].inventory = [];
-            this.data.users[username].stats = { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 };
-        }
-        this.shared.coinflips = [];
-        this.shared.coinflipsHistory = [];
-        this.shared.chat = [];
-        this.save();
-        this.saveShared();
-        return true;
-    },
-
-    isMaintenanceMode() {
-        return this.data.maintenance || false;
-    },
-
-    setMaintenanceMode(enabled) {
-        this.data.maintenance = enabled;
-        this.save();
+        
+        return users.slice(0, limit);
     }
 };
-
-window.DB = DB;
