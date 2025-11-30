@@ -10,7 +10,6 @@ const DB = {
             this.data = JSON.parse(saved);
             
             if (this.data.items && this.data.items.skibidi_toilet) {
-                console.log('Old data detected, resetting...');
                 localStorage.removeItem(this.STORAGE_KEY);
                 this.data = this.getDefaultData();
             }
@@ -65,13 +64,11 @@ const DB = {
         
         const originalClear = Storage.prototype.clear;
         Storage.prototype.clear = function() {
-            console.warn('🚫 localStorage.clear() blocked!');
         };
         
         const originalRemoveItem = Storage.prototype.removeItem;
         Storage.prototype.removeItem = function(key) {
             if (key === self.STORAGE_KEY || key === self.SHARED_KEY) {
-                console.warn('🚫 Cannot remove protected data');
                 return;
             }
             return originalRemoveItem.call(this, key);
@@ -91,7 +88,6 @@ const DB = {
             const shared = localStorage.getItem(self.SHARED_KEY);
             
             if (!data || !shared) {
-                console.warn('🚨 Data loss detected! Restoring...');
                 const backupData = sessionStorage.getItem('backup_' + self.STORAGE_KEY);
                 const backupShared = sessionStorage.getItem('backup_' + self.SHARED_KEY);
                 
@@ -100,7 +96,6 @@ const DB = {
             }
         }, 5000);
         
-        console.log('🔒 Storage protection active');
     },
 
     save() {
@@ -323,8 +318,6 @@ const DB = {
         this.shared.coinflips.push(coinflip);
         this.saveShared();
         
-        console.log('[DB] Coinflip created:', coinflip.id, 'Status:', coinflip.status);
-        console.log('[DB] Total coinflips after create:', this.shared.coinflips.length);
         
         return coinflip;
     },
@@ -338,7 +331,6 @@ const DB = {
     },
 
     getAllActiveCoinflips() {
-        console.log('[DB] getAllActiveCoinflips called, count:', this.shared.coinflips.length);
         return this.shared.coinflips;
     },
 
@@ -364,7 +356,6 @@ const DB = {
         cf.winnerSide = winnerSide;
         cf.winner = winner;
         
-        console.log('[DB] Winner calculated:', winner, 'Side:', winnerSide);
 
         const uniqueIds = items.map(function(i) { return i.uniqueId; });
         this.removeItemsFromUser(opponentUsername, uniqueIds);
@@ -423,7 +414,7 @@ const DB = {
                 return c.id !== coinflipId;
             });
             self.saveShared();
-        }, 5000);
+        }, 30000); // 30 secondes au lieu de 5
 
         this.save();
         this.saveShared();

@@ -16,10 +16,8 @@ const App = {
         this.isOnline = typeof SupaDB !== 'undefined';
         
         if (!this.isOnline) {
-            console.warn('⚠️ Running in offline mode (localStorage). Data is NOT protected.');
             await DB.init();
         } else {
-            console.log('✅ Running in Supabase mode. Data is secure.');
         }
         
         this.simulateLoading();
@@ -399,13 +397,11 @@ const App = {
             const opponent = this.isOnline ? cf.opponent : cf.opponent;
             const cfId = this.isOnline ? cf.id : cf.id;
 
-            console.log('Checking coinflip:', { cfId, status, creator, opponent, isMyGame: creator === this.currentUser.username });
 
             if (creator === this.currentUser.username && status === 'playing') {
                 const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
                 if (!activeCfId || activeCfId !== cfId) {
                     localStorage.setItem('brainrotflip_active_coinflip', cfId);
-                    console.log('Starting animation for:', cfId);
                     this.startCoinflipAnimation(cf);
                     break;
                 }
@@ -778,8 +774,6 @@ const App = {
             coinflips = DB.getAllActiveCoinflips();
         }
         
-        console.log('All coinflips:', coinflips);
-        console.log('Current user:', this.currentUser.username);
             
         const container = document.getElementById('coinflipList');
         if (!container) return;
@@ -791,9 +785,9 @@ const App = {
         const tailsEl = document.getElementById('filterTailsCount');
 
         const activeCoinflips = coinflips.filter(function(cf) {
-            const status = cf.status || 'waiting';
-            // Afficher tous les coinflips sauf ceux qui sont terminés avec un winner
-            return status !== 'finished' && !cf.winner;
+            // Afficher seulement les coinflips sans winner (pas encore finis)
+            const winner = cf.winner || cf.winner_side;
+            return !winner;
         });
 
         if (roomsEl) roomsEl.textContent = activeCoinflips.length;
@@ -815,14 +809,14 @@ const App = {
         if (headsEl) headsEl.textContent = headsCount;
         if (tailsEl) tailsEl.textContent = activeCoinflips.length - headsCount;
 
-        if (coinflips.length === 0) {
+        if (activeCoinflips.length === 0) {
             container.innerHTML = '<div class="no-games-message"><div class="icon">🪙</div><p>No active games</p><p style="font-size:0.9rem;margin-top:0.5rem;">Be the first to create one!</p></div>';
             return;
         }
 
         let html = '';
-        for (let i = 0; i < coinflips.length; i++) {
-            const cf = coinflips[i];
+        for (let i = 0; i < activeCoinflips.length; i++) {
+            const cf = activeCoinflips[i];
             const status = this.isOnline ? cf.status : cf.status;
             const creator = this.isOnline ? cf.creator : cf.creator;
             const creatorAvatar = this.isOnline ? cf.creator_avatar : cf.creatorAvatar;
@@ -1387,7 +1381,6 @@ const App = {
             ? await SupaDB.createCoinflip(this.currentUser.username, this.selectedItems, this.selectedSide)
             : DB.createCoinflip(this.currentUser.username, this.selectedItems, this.selectedSide);
         
-        console.log('Coinflip created:', cf);
             
         if (cf) {
             this.closeModal('createCfModal');
@@ -1432,14 +1425,6 @@ const App = {
         const minReq = Math.floor(cfValue * 0.9);
         const maxReq = Math.ceil(cfValue * 1.1);
 
-        console.log('Join validation:', {
-            selectedTotal: selectedTotal,
-            cfValue: cfValue,
-            minReq: minReq,
-            maxReq: maxReq,
-            valid: selectedTotal >= minReq && selectedTotal <= maxReq
-        });
-
         if (selectedTotal < minReq || selectedTotal > maxReq) {
             this.showToast('Value must be ' + this.formatNumber(minReq) + '-' + this.formatNumber(maxReq) + ' 💎 (You selected: ' + this.formatNumber(selectedTotal) + ' 💎)', 'error');
             this.isJoiningCoinflip = false;
@@ -1469,7 +1454,6 @@ const App = {
     async startCoinflipAnimation(cf) {
         // EMPÊCHER DOUBLE ANIMATION
         if (document.getElementById('cfAnimationModal')) {
-            console.log('Animation already running, skipping...');
             return;
         }
 
@@ -1479,7 +1463,6 @@ const App = {
         
         // VÉRIFIER QU'IL Y A BIEN UN OPPONENT
         if (!opponent) {
-            console.log('No opponent yet, skipping animation for:', cfId);
             return;
         }
         
@@ -1503,14 +1486,12 @@ const App = {
             winnerSide = cf.winnerSide || cf.creatorSide; // localStorage
         }
         
-        console.log('Using pre-calculated winner side:', winnerSide);
         
         // Stocker le winner pour que finishCoinflip l'utilise plus tard
         this.pendingCoinflipWinner = { cfId: cfId, winnerSide: winnerSide };
         
         // Choisir LA BONNE VIDÉO en fonction du winner
         const correctVideo = winnerSide === 'H' ? 'assets/H_Tiles.mp4' : 'assets/T_Tails.mp4';
-        console.log('Winner side:', winnerSide, '→ Video:', correctVideo);
 
         let creatorTotal = 0;
         for (let i = 0; i < creatorItems.length; i++) {
@@ -1626,26 +1607,20 @@ const App = {
             
         document.body.appendChild(modal);
 
-        // COUNTDOWN 3-2-1-GO
+        // COUNTDOWN 3-2-1
         const countdownEl = document.getElementById('countdown');
         const videoEl = document.getElementById('coinVideo');
         let count = 3;
         
         const countdownInterval = setInterval(function() {
-            if (count > 1) {
-                count--;
+            count--;
+            if (count > 0) {
                 countdownEl.textContent = count;
-            } else if (count === 1) {
-                countdownEl.textContent = 'GO!';
-                countdownEl.style.color = '#22c55e';
-                count--;
             } else {
                 clearInterval(countdownInterval);
-                setTimeout(function() {
-                    countdownEl.style.display = 'none';
-                    videoEl.style.display = 'block';
-                    videoEl.play();
-                }, 500);
+                countdownEl.style.display = 'none';
+                videoEl.style.display = 'block';
+                videoEl.play();
             }
         }, 1000);
 
@@ -1804,7 +1779,6 @@ const App = {
 
         // Charger les TRAITS (checkboxes - multiple)
         const traitsContainer = document.getElementById('adminTraitsContainer');
-        console.log('Traits container:', traitsContainer);
         if (traitsContainer) {
             const availableTraits = this.isOnline 
                 ? {
@@ -1814,7 +1788,6 @@ const App = {
                     corrupted: { name: "Corrupted", multiplier: 0.25, color: "#ff0000" }
                 }
                 : DB.data.availableTraits;
-            console.log('Available traits:', availableTraits);
             let html = '';
             for (const traitKey in availableTraits) {
                 const trait = availableTraits[traitKey];
@@ -1828,13 +1801,11 @@ const App = {
                     '<span style="font-size:0.85rem;color:var(--text-secondary);">(' + multiplierText + ')</span>' +
                     '</label>';
             }
-            console.log('Traits HTML:', html);
             traitsContainer.innerHTML = html;
         }
         
         // Charger les MUTATIONS (select - un seul)
         const mutationSelect = document.getElementById('adminAddMutation');
-        console.log('Mutation select:', mutationSelect);
         if (mutationSelect) {
             const availableMutations = this.isOnline
                 ? {
@@ -1849,7 +1820,6 @@ const App = {
                     radioactive: { name: "Radioactive", multiplier: 7.0, effect: "radioactive-glow" }
                 }
                 : DB.data.availableMutations;
-            console.log('Available mutations:', availableMutations);
             let html = '<option value="">None</option>';
             for (const mutKey in availableMutations) {
                 const mut = availableMutations[mutKey];
@@ -1858,7 +1828,6 @@ const App = {
                     : '÷' + (1 / mut.multiplier);
                 html += '<option value="' + mutKey + '">' + mut.name + ' (' + multiplierText + ')</option>';
             }
-            console.log('Mutations HTML:', html);
             mutationSelect.innerHTML = html;
         }
 

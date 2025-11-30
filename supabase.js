@@ -371,7 +371,6 @@ const SupaDB = {
         const winnerSide = Math.random() < 0.5 ? cf.creator_side : (cf.creator_side === 'H' ? 'T' : 'H');
         const winner = winnerSide === cf.creator_side ? cf.creator : opponentUsername;
         
-        console.log('[Supabase] Winner calculated:', winner, 'Side:', winnerSide);
 
         const { data, error } = await supabase
             .from('coinflips')
@@ -463,7 +462,7 @@ const SupaDB = {
                 .from('coinflips')
                 .delete()
                 .eq('id', coinflipId);
-        }, 5000);
+        }, 30000); // 30 secondes au lieu de 5
 
         return { winner: winner, winner_side: winnerSide };
     },
