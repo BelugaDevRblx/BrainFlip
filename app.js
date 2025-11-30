@@ -12,10 +12,23 @@ const App = {
     selectedWalletItems: [],
 
     async init() {
-        this.isOnline = typeof SupaDB !== 'undefined';
-        if (!this.isOnline) {
-            await DB.init();
+        // FORCER MODE ONLINE UNIQUEMENT
+        this.isOnline = true;
+        
+        if (typeof SupaDB === 'undefined') {
+            alert('⚠️ ERROR: Supabase is required to use BrainFlip.\n\nThe site cannot function without it.\n\nPlease refresh the page or contact support.');
+            document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;background:#0f172a;color:white;font-family:Inter,sans-serif;flex-direction:column;gap:1rem;">' +
+                '<h1 style="font-size:3rem;">🚫</h1>' +
+                '<h2>Supabase Required</h2>' +
+                '<p style="color:#94a3b8;">BrainFlip requires Supabase to function securely.</p>' +
+                '<button onclick="location.reload()" style="padding:0.75rem 2rem;background:#3b82f6;border:none;border-radius:8px;color:white;font-weight:700;cursor:pointer;margin-top:1rem;">Refresh Page</button>' +
+                '</div>';
+            return;
         }
+        
+        // Bloquer localStorage
+        await DB.init();
+        
         this.simulateLoading();
     },
 

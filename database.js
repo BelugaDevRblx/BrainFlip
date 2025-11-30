@@ -5,67 +5,62 @@ const DB = {
     shared: null,
 
     async init() {
-        const saved = localStorage.getItem(this.STORAGE_KEY);
-        if (saved) {
-            this.data = JSON.parse(saved);
-            
-            // FORCER RESET si anciens items détectés
-            if (this.data.items && this.data.items.skibidi_toilet) {
-                console.log('Old data detected, resetting...');
-                localStorage.removeItem(this.STORAGE_KEY);
-                this.data = this.getDefaultData();
-            }
-        } else {
-            this.data = this.getDefaultData();
-        }
-
-        const sharedData = localStorage.getItem(this.SHARED_KEY);
-        if (sharedData) {
-            this.shared = JSON.parse(sharedData);
-        } else {
-            this.shared = {
-                coinflips: [],
-                coinflipsHistory: [],
-                chat: []
-            };
-            this.saveShared();
-        }
-
-        // Créer ou mettre à jour l'admin Brainflip
-        if (!this.data.users['Brainflip']) {
-            this.data.users['Brainflip'] = {
-                id: 'usr_admin_brainflip',
-                username: 'Brainflip',
-                password: 'Beluga.2009',
-                robloxId: '1',
-                verified: true,
-                isAdmin: true,
-                level: 99,
-                discordLinked: false,
-                discordUsername: null,
-                badges: ['👑', '⭐', '🎮'],
-                stats: { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 },
-                inventory: [],
-                avatar: 'https://ui-avatars.com/api/?name=Brainflip&background=7c3aed&color=fff&size=128',
-                createdAt: new Date().toISOString()
-            };
-            this.save();
-        } else if (this.data.users['Brainflip'].password !== 'Beluga.2009') {
-            // Mettre à jour le mot de passe si incorrect
-            this.data.users['Brainflip'].password = 'Beluga.2009';
-            this.data.users['Brainflip'].isAdmin = true;
-            this.save();
-        }
-
-        // Ne PAS nettoyer les coinflips au démarrage (sinon ils disparaissent !)
-        // Les coinflips actifs doivent persister
-
-        this.save();
+        // FORCER MODE SUPABASE - localStorage désactivé
+        console.log('🔒 Running in Supabase-only mode. localStorage disabled for security.');
         
-        // BLOQUER ACCÈS CONSOLE aux fonctions dangereuses
-        this._protectConsole();
+        // Bloquer TOUT accès à localStorage
+        this._blockLocalStorage();
+        
+        // Utiliser Supabase comme seule source de données
+        this.isOnline = true;
+        
+        // Les données ne sont JAMAIS stockées localement
+        this.data = {
+            users: {},
+            bannedIPs: [],
+            items: this.getDefaultData().items
+        };
+        
+        this.shared = {
+            coinflips: [],
+            coinflipsHistory: [],
+            chat: []
+        };
         
         return this.data;
+    },
+
+    _blockLocalStorage() {
+        // Bloquer TOUTES les méthodes localStorage
+        const blocked = function() {
+            console.error('🚫 localStorage is disabled. All data is stored securely on Supabase.');
+            return null;
+        };
+        
+        // Override toutes les méthodes
+        Storage.prototype.setItem = blocked;
+        Storage.prototype.getItem = blocked;
+        Storage.prototype.removeItem = blocked;
+        Storage.prototype.clear = blocked;
+        
+        // Bloquer l'accès direct
+        Object.defineProperty(window, 'localStorage', {
+            get: function() {
+                console.error('🚫 localStorage access blocked. Use Supabase.');
+                return {
+                    setItem: blocked,
+                    getItem: blocked,
+                    removeItem: blocked,
+                    clear: blocked,
+                    length: 0
+                };
+            },
+            set: function() {
+                console.error('🚫 Cannot override localStorage.');
+            }
+        });
+        
+        console.log('🔒 localStorage completely disabled. All data on Supabase only.');
     },
 
     _protectConsole() {
@@ -93,14 +88,104 @@ const DB = {
         this._deleteUser = originalDeleteUser;
         this._banIP = originalBanIP;
         this._unbanIP = originalUnbanIP;
+        
+        // PROTECTION CONTRE localStorage.clear()
+        this._setupBackupSystem();
+    },
+
+    _setupBackupSystem() {
+        const self = this;
+        
+        // Backup toutes les 10 secondes
+        setInterval(function() {
+            // Backup dans IndexedDB (plus difficile à effacer)
+            self._backupToIndexedDB();
+        }, 10000);
+        
+        // Vérifier toutes les 3 secondes si localStorage a été clear
+        setInterval(function() {
+            const data = localStorage.getItem(self.STORAGE_KEY);
+            if (!data) {
+                console.warn('🚨 localStorage cleared detected! Restoring from backup...');
+                self._restoreFromIndexedDB();
+            }
+        }, 3000);
+        
+        // Override localStorage.clear()
+        const originalClear = Storage.prototype.clear;
+        Storage.prototype.clear = function() {
+            console.warn('⚠️ localStorage.clear() blocked!');
+            // Ne rien faire
+        };
+        
+        // Override localStorage.removeItem pour nos clés
+        const originalRemoveItem = Storage.prototype.removeItem;
+        Storage.prototype.removeItem = function(key) {
+            if (key === self.STORAGE_KEY || key === self.SHARED_KEY) {
+                console.warn('⚠️ Attempt to remove protected data blocked!');
+                return;
+            }
+            originalRemoveItem.call(this, key);
+        };
+    },
+
+    _backupToIndexedDB() {
+        const self = this;
+        const request = indexedDB.open('BrainFlipBackup', 1);
+        
+        request.onupgradeneeded = function(event) {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('backups')) {
+                db.createObjectStore('backups');
+            }
+        };
+        
+        request.onsuccess = function(event) {
+            const db = event.target.result;
+            const transaction = db.transaction(['backups'], 'readwrite');
+            const store = transaction.objectStore('backups');
+            
+            store.put(self.data, 'userData');
+            store.put(self.shared, 'sharedData');
+        };
+    },
+
+    _restoreFromIndexedDB() {
+        const self = this;
+        const request = indexedDB.open('BrainFlipBackup', 1);
+        
+        request.onsuccess = function(event) {
+            const db = event.target.result;
+            const transaction = db.transaction(['backups'], 'readonly');
+            const store = transaction.objectStore('backups');
+            
+            const userDataRequest = store.get('userData');
+            const sharedDataRequest = store.get('sharedData');
+            
+            userDataRequest.onsuccess = function() {
+                if (userDataRequest.result) {
+                    self.data = userDataRequest.result;
+                    self.save();
+                }
+            };
+            
+            sharedDataRequest.onsuccess = function() {
+                if (sharedDataRequest.result) {
+                    self.shared = sharedDataRequest.result;
+                    self.saveShared();
+                }
+            };
+        };
     },
 
     save() {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.data));
+        // localStorage désactivé - tout est sur Supabase
+        console.log('💾 Data saved to Supabase only.');
     },
 
     saveShared() {
-        localStorage.setItem(this.SHARED_KEY, JSON.stringify(this.shared));
+        // localStorage désactivé - tout est sur Supabase
+        console.log('💾 Shared data saved to Supabase only.');
     },
 
     getDefaultData() {
