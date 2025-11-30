@@ -75,6 +75,7 @@ const DB = {
     getDefaultData() {
         return {
             users: {},
+            bannedIPs: [],  // Liste des IPs bannies
             items: {
                 dragon_canneloni: { 
                     id: "dragon_canneloni", 
@@ -125,6 +126,12 @@ const DB = {
             }
         }
         
+        // Générer une fausse IP (en vrai il faudrait récupérer la vraie IP côté serveur)
+        const fakeIP = Math.floor(Math.random() * 255) + '.' + 
+                       Math.floor(Math.random() * 255) + '.' + 
+                       Math.floor(Math.random() * 255) + '.' + 
+                       Math.floor(Math.random() * 255);
+        
         const user = {
             id: 'usr_' + Date.now(),
             username: username,
@@ -139,6 +146,7 @@ const DB = {
             stats: { wagered: 0, won: 0, lost: 0, gamesPlayed: 0, gamesWon: 0 },
             inventory: [],
             avatar: 'https://www.roblox.com/headshot-thumbnail/image?userId=' + robloxId + '&width=150&height=150&format=png',
+            ip: fakeIP,  // Stocker l'IP
             createdAt: new Date().toISOString()
         };
         this.data.users[username] = user;
@@ -395,6 +403,27 @@ const DB = {
 
     getAllItems() {
         return Object.values(this.data.items);
+    },
+
+    banIP(ip) {
+        if (!this.data.bannedIPs) this.data.bannedIPs = [];
+        if (!this.data.bannedIPs.includes(ip)) {
+            this.data.bannedIPs.push(ip);
+            this.save();
+        }
+    },
+
+    unbanIP(ip) {
+        if (!this.data.bannedIPs) this.data.bannedIPs = [];
+        this.data.bannedIPs = this.data.bannedIPs.filter(function(bannedIP) {
+            return bannedIP !== ip;
+        });
+        this.save();
+    },
+
+    isIPBanned(ip) {
+        if (!this.data.bannedIPs) return false;
+        return this.data.bannedIPs.includes(ip);
     },
 
     calculateItemValue(item) {

@@ -279,7 +279,7 @@ const App = {
             '<nav class="sidebar">' +
             '<div class="sidebar-logo">' +
             '<img src="Bf.png" class="logo-icon-img">' +
-            '<span class="logo-text">BloxyFlip</span>' +
+            '<span class="logo-text">BrainFlip</span>' +
             '</div>' +
             '<div class="sidebar-nav">' +
             '<div class="nav-section">' +
@@ -783,10 +783,10 @@ const App = {
         const tailsEl = document.getElementById('filterTailsCount');
 
         const activeCoinflips = coinflips.filter(function(cf) {
-            const status = this.isOnline ? cf.status : cf.status;
-            const winner = this.isOnline ? cf.winner : cf.winner;
-            return status === 'waiting' || (status === 'playing' && !winner);
-        }.bind(this));
+            const status = cf.status || 'waiting';
+            // Afficher tous les coinflips sauf ceux qui sont terminés avec un winner
+            return status !== 'finished' && !cf.winner;
+        });
 
         if (roomsEl) roomsEl.textContent = activeCoinflips.length;
         
@@ -1580,7 +1580,7 @@ const App = {
 
         modal.innerHTML = '<div class="bloxyx-modal">' +
             '<button class="bloxyx-close" onclick="App.closeModal(\'cfAnimationModal\')">×</button>' +
-            '<div class="bloxyx-header"><img src="BloxyF.png" style="height:40px;"></div>' +
+            '<div class="bloxyx-header"><img src="BrainF.png" style="height:40px;"></div>' +
             '<div class="bloxyx-players-section">' +
             '<div class="bloxyx-player-card">' +
             '<img src="' + creatorAvatar + '" class="bloxyx-avatar">' +
@@ -1826,6 +1826,9 @@ const App = {
                 const balance = this.isOnline
                     ? await SupaDB.getUserBalance(u.username)
                     : DB.getUserBalance(u.username);
+                
+                const userIP = u.ip || 'Unknown';
+                const isBanned = this.isOnline ? false : DB.isIPBanned(userIP);
                     
                 html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;border-bottom:1px solid var(--border-color);">' +
                     '<div style="display:flex;align-items:center;gap:0.75rem;">' +
@@ -1833,11 +1836,33 @@ const App = {
                     '<div>' +
                     '<div style="font-weight:700;">' + u.username + '</div>' +
                     '<div style="font-size:0.85rem;color:var(--text-secondary);">Balance: ' + this.formatNumber(balance) + ' 💎</div>' +
+                    '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:0.25rem;">IP: ' + userIP + '</div>' +
                     '</div>' +
+                    '</div>' +
+                    '<div style="display:flex;gap:0.5rem;">' +
+                    (isBanned 
+                        ? '<button onclick="App.unbanIP(\'' + userIP + '\')" style="padding:0.5rem 1rem;background:var(--accent-green);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;">Unban IP</button>'
+                        : '<button onclick="App.banIP(\'' + userIP + '\')" style="padding:0.5rem 1rem;background:var(--accent-red);color:white;border:none;border-radius:6px;cursor:pointer;font-weight:700;">Ban IP</button>') +
                     '</div>' +
                     '</div>';
             }
             usersList.innerHTML = html;
+        }
+    },
+
+    banIP(ip) {
+        if (!this.isOnline) {
+            DB.banIP(ip);
+            this.showToast('IP ' + ip + ' banned!', 'success');
+            this.loadAdminPanel();
+        }
+    },
+
+    unbanIP(ip) {
+        if (!this.isOnline) {
+            DB.unbanIP(ip);
+            this.showToast('IP ' + ip + ' unbanned!', 'success');
+            this.loadAdminPanel();
         }
     },
 
