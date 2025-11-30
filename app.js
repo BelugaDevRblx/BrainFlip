@@ -396,7 +396,10 @@ const App = {
             const creator = this.isOnline ? cf.creator : cf.creator;
             const opponent = this.isOnline ? cf.opponent : cf.opponent;
             const cfId = this.isOnline ? cf.id : cf.id;
+            const winner = this.isOnline ? cf.winner : cf.winner;
 
+            // Ne PAS lancer l'animation si déjà finished
+            if (winner || status === 'finished') continue;
 
             if (creator === this.currentUser.username && status === 'playing') {
                 const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
@@ -1638,6 +1641,9 @@ const App = {
                 ? await SupaDB.finishCoinflip(cfId, winnerSide)
                 : DB.finishCoinflip(cfId, winnerSide);
 
+            // ATTENDRE que la DB soit à jour avant de recharger
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             if (self.isOnline) {
                 const user = await SupaDB.getUser(self.currentUser.username);
                 self.currentUser.inventory = user.inventory || [];
@@ -1970,6 +1976,14 @@ const App = {
     closeModal(modalId) {
         const modal = document.getElementById(modalId);
         if (modal) modal.remove();
+        
+        // Si c'est l'animation coinflip qui se ferme, nettoyer
+        if (modalId === 'cfAnimationModal') {
+            localStorage.removeItem('brainrotflip_active_coinflip');
+            delete this.pendingCoinflipWinner;
+            this.updateBalance();
+            this.loadCoinflips();
+        }
     },
 
     showToast(msg, type) {
