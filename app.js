@@ -10,14 +10,17 @@ const App = {
     lastChatTime: 0,
     walletTab: 'deposit',
     selectedWalletItems: [],
+    ignoredCoinflips: [], // Coinflips fermés manuellement
 
     async init() {
+        // NETTOYER les animations en cours (si refresh pendant un coinflip)
+        localStorage.removeItem('brainrotflip_active_coinflip');
+        
         // MODE HYBRIDE : localStorage si Supabase pas dispo
         this.isOnline = typeof SupaDB !== 'undefined';
         
         if (!this.isOnline) {
             await DB.init();
-        } else {
         }
         
         this.simulateLoading();
@@ -386,6 +389,9 @@ const App = {
     },
 
     async checkForActiveCoinflip() {
+        // Ne pas check si le modal est déjà ouvert
+        if (document.getElementById('cfAnimationModal')) return;
+        
         const coinflips = this.isOnline 
             ? await SupaDB.getAllActiveCoinflips()
             : DB.getAllActiveCoinflips();
@@ -399,6 +405,9 @@ const App = {
 
             // Skip seulement si status = 'finished'
             if (status === 'finished') continue;
+            
+            // Skip si dans la liste des ignorés (fermé manuellement)
+            if (this.ignoredCoinflips.includes(cfId)) continue;
 
             if (creator === this.currentUser.username && status === 'playing') {
                 const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
@@ -1983,6 +1992,11 @@ const App = {
         
         // Si c'est l'animation coinflip qui se ferme, nettoyer
         if (modalId === 'cfAnimationModal') {
+            const activeCfId = localStorage.getItem('brainrotflip_active_coinflip');
+            if (activeCfId) {
+                // Ajouter à la liste des ignorés pour ne plus le relancer
+                this.ignoredCoinflips.push(activeCfId);
+            }
             localStorage.removeItem('brainrotflip_active_coinflip');
             delete this.pendingCoinflipWinner;
             this.updateBalance();
