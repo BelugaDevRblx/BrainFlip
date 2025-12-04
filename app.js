@@ -16,6 +16,10 @@ const App = {
         // NETTOYER les animations en cours (si refresh pendant un coinflip)
         localStorage.removeItem('brainrotflip_active_coinflip');
         
+        // CHARGER la liste des coinflips ignorés
+        const ignored = localStorage.getItem('brainrotflip_ignored_coinflips');
+        this.ignoredCoinflips = ignored ? JSON.parse(ignored) : [];
+        
         // MODE HYBRIDE : localStorage si Supabase pas dispo
         this.isOnline = typeof SupaDB !== 'undefined';
         
@@ -1674,6 +1678,13 @@ const App = {
             }
             
             localStorage.removeItem('brainrotflip_active_coinflip');
+            
+            // Retirer de la liste des ignorés (coinflip terminé normalement)
+            self.ignoredCoinflips = self.ignoredCoinflips.filter(function(id) { 
+                return id !== cfId; 
+            });
+            localStorage.setItem('brainrotflip_ignored_coinflips', JSON.stringify(self.ignoredCoinflips));
+            
             delete self.pendingCoinflipWinner;
             
             // UPDATE BALANCE IMMÉDIATEMENT
@@ -1996,6 +2007,8 @@ const App = {
             if (activeCfId) {
                 // Ajouter à la liste des ignorés pour ne plus le relancer
                 this.ignoredCoinflips.push(activeCfId);
+                // SAUVEGARDER dans localStorage pour persister
+                localStorage.setItem('brainrotflip_ignored_coinflips', JSON.stringify(this.ignoredCoinflips));
             }
             localStorage.removeItem('brainrotflip_active_coinflip');
             delete this.pendingCoinflipWinner;
